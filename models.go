@@ -1,15 +1,24 @@
 package main
 
-type UnavailableVideo struct {
-	PlaylistName string
-	VideoTitle   string
-	VideoID      string
-	Status       string
+import (
+	"time"
+)
+
+type Playlist struct {
+	ID        uint   `gorm:"primaryKey"`
+	Name      string `gorm:"uniqueIndex"`
+	Videos    []Video
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
-type PlaylistVideo struct {
-	PlaylistName string
-	VideoTitle   string
-	VideoID      string
-	URL          string
+type Video struct {
+	ID         uint `gorm:"primaryKey"`
+	PlaylistID uint `gorm:"index"`
+	Title      string
+	VideoID    string `gorm:"uniqueIndex"`
+	URL        string
+	Status     string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }

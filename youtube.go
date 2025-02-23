@@ -15,13 +15,13 @@ func NewPlaylistChecker(service *youtube.Service) *PlaylistChecker {
 	return &PlaylistChecker{service: service}
 }
 
-func (c *PlaylistChecker) GetMusicPlaylists(ctx context.Context) ([]PlaylistVideo, error) {
+func (c *PlaylistChecker) GetMusicPlaylists(ctx context.Context) ([]Video, error) {
 	playlists, err := c.getPlaylists(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var musicVideos []PlaylistVideo
+	var musicVideos []Video
 
 	for _, playlist := range playlists {
 		// Check if playlist name starts with "music:" or "Music:"
@@ -40,11 +40,10 @@ func (c *PlaylistChecker) GetMusicPlaylists(ctx context.Context) ([]PlaylistVide
 				continue
 			}
 
-			musicVideos = append(musicVideos, PlaylistVideo{
-				PlaylistName: playlist.Snippet.Title,
-				VideoTitle:   video.Snippet.Title,
-				VideoID:      video.ContentDetails.VideoId,
-				URL:          "https://www.youtube.com/watch?v=" + video.ContentDetails.VideoId,
+			musicVideos = append(musicVideos, Video{
+				Title:   video.Snippet.Title,
+				VideoID: video.ContentDetails.VideoId,
+				URL:     "https://www.youtube.com/watch?v=" + video.ContentDetails.VideoId,
 			})
 		}
 	}
@@ -52,13 +51,13 @@ func (c *PlaylistChecker) GetMusicPlaylists(ctx context.Context) ([]PlaylistVide
 	return musicVideos, nil
 }
 
-func (c *PlaylistChecker) CheckPlaylists(ctx context.Context) ([]UnavailableVideo, error) {
+func (c *PlaylistChecker) CheckPlaylists(ctx context.Context) ([]Video, error) {
 	playlists, err := c.getPlaylists(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var unavailableVideos []UnavailableVideo
+	var unavailableVideos []Video
 
 	for _, playlist := range playlists {
 		videos, err := c.getPlaylistItems(ctx, playlist.Id)
@@ -68,11 +67,10 @@ func (c *PlaylistChecker) CheckPlaylists(ctx context.Context) ([]UnavailableVide
 
 		for _, video := range videos {
 			if isVideoUnavailable(video) {
-				unavailableVideos = append(unavailableVideos, UnavailableVideo{
-					PlaylistName: playlist.Snippet.Title,
-					VideoTitle:   video.Snippet.Title,
-					VideoID:      video.ContentDetails.VideoId,
-					Status:       video.Status.PrivacyStatus,
+				unavailableVideos = append(unavailableVideos, Video{
+					Title:   video.Snippet.Title,
+					VideoID: video.ContentDetails.VideoId,
+					Status:  video.Status.PrivacyStatus,
 				})
 			}
 		}

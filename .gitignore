@@ -1,2 +1,24 @@
+# Ignore binary files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+playlist_manager
+playlist-manager
+
+# Ignore Go build output 
+/bin/
+/obj/
+
+# Ignore Go modules cache 
+**/pkg/
+**/vendor/
+
+# Ignore data files
 **/*.csv
 **/*.json
+**/*.db
+
+# Ignore scripts
+build.sh
