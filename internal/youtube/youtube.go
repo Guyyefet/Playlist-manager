@@ -1,11 +1,15 @@
-package main
+package youtube
 
 import (
 	"context"
 	"strings"
 
+	"playlist-manager/internal/models"
+
 	"google.golang.org/api/youtube/v3"
 )
+
+type Video = models.Video
 
 type PlaylistChecker struct {
 	service *youtube.Service

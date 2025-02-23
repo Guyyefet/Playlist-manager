@@ -22,3 +22,7 @@ playlist-manager
 
 # Ignore scripts
 build.sh
+
+# Build artifacts
+playlist_manager
+playlist-manager

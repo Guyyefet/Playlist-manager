@@ -1,6 +1,8 @@
-package main
+package db
 
 import (
+	"playlist-manager/internal/models"
+
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -8,6 +10,9 @@ import (
 type DB struct {
 	db *gorm.DB
 }
+
+type Video = models.Video
+type Playlist = models.Playlist
 
 func NewDB(dbPath string) (*DB, error) {
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})

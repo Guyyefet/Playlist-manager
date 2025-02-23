@@ -1,4 +1,4 @@
-package main
+package auth
 
 import (
 	"context"
@@ -56,7 +56,7 @@ func (s *AuthService) CreateYouTubeService(ctx context.Context) (*youtube.Servic
 }
 
 func (s *AuthService) getClient() *http.Client {
-	tokenFile := "token.json"
+	tokenFile := "config/token.json"
 	token, err := s.tokenFromFile(tokenFile)
 
 	if err != nil {

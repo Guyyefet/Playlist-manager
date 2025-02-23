@@ -1,4 +1,4 @@
-module playlist_manager
+module playlist-manager
 
 go 1.23.4
 

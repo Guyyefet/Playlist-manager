@@ -4,27 +4,31 @@ import (
 	"context"
 	"log"
 
-	"google.golang.org/api/youtube/v3"
+	"playlist-manager/internal/auth"
+	"playlist-manager/internal/db"
+	"playlist-manager/internal/youtube"
+
+	yt "google.golang.org/api/youtube/v3"
 )
 
 func main() {
 	ctx := context.Background()
 
 	// Initialize auth service
-	authService, err := NewAuthService("credentials.json")
+	authService, err := auth.NewAuthService("config/credentials.json")
 	if err != nil {
 		log.Fatalf("Failed to create auth service: %v", err)
 	}
 
 	// Get YouTube service
-	var youtubeService *youtube.Service
+	var youtubeService *yt.Service
 	youtubeService, err = authService.CreateYouTubeService(ctx)
 	if err != nil {
 		log.Fatalf("Error creating YouTube client: %v", err)
 	}
 
 	// Initialize YouTube checker
-	checker := NewPlaylistChecker(youtubeService)
+	checker := youtube.NewPlaylistChecker(youtubeService)
 
 	// Get unavailable videos
 	log.Println("Checking playlists... calling API")
@@ -41,7 +45,7 @@ func main() {
 	}
 
 	// Initialize database
-	db, err := NewDB("playlists.db")
+	db, err := db.NewDB("playlists.db")
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
