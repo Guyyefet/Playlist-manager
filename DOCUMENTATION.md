@@ -173,3 +173,59 @@ sequenceDiagram
 2. User notification system for unavailable videos
 3. Historical trend analysis
 4. Multi-platform export capabilities
+
+## Import Fixes Documentation
+
+### Issue
+The frontend was experiencing errors with the import statement:
+```typescript
+import { goto } from '$app/navigation';
+```
+This was causing "Cannot find module '$app/navigation'" errors.
+
+### Solution
+We implemented the following fixes:
+
+1. **Server-side Redirects**
+   - Created +page.server.js for handling redirects on the server
+   - Example:
+     ```javascript
+     export const load = async ({ url }) => {
+       if (url.pathname === '/') {
+         return { status: 302, redirect: '/home' };
+       }
+     };
+     ```
+
+2. **Client-side Navigation**
+   - Moved all window.location operations to onMount
+   - Example:
+     ```typescript
+     onMount(() => {
+       window.location.href = '/home';
+     });
+     ```
+
+3. **Error Handling**
+   - Added graceful error handling for missing backend endpoints
+   - Example:
+     ```typescript
+     try {
+       const response = await fetch('/api/endpoint');
+       if (!response.ok) {
+         throw new Error('Backend unavailable');
+       }
+     } catch (err) {
+       if (!err.message.includes('404')) {
+         console.error(err);
+       }
+     }
+     ```
+
+### Best Practices
+1. Use server-side redirects for initial page loads
+2. Only access window object in onMount
+3. Handle 404 errors gracefully when backend is unavailable
+4. Avoid mixing client and server navigation approaches
+
+These changes ensure proper navigation handling while maintaining compatibility with SvelteKit's architecture.

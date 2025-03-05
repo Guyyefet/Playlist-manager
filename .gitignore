@@ -21,7 +21,7 @@ playlist-manager
 **/*.db
 
 # Ignore scripts
-build.sh
+scripts
 
 # Build artifacts
 playlist_manager

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -16,11 +17,17 @@ import (
 )
 
 type AuthService struct {
-	config *oauth2.Config
+	Config *oauth2.Config
 }
 
-func NewAuthService(credentialsPath string) (*AuthService, error) {
-	b, err := os.ReadFile(credentialsPath)
+func NewAuthService() (*AuthService, error) {
+	// Get absolute path to credentials file
+	absPath, err := filepath.Abs("config/credentials.json")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute path: %v", err)
+	}
+
+	b, err := os.ReadFile(absPath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read client secret file: %v", err)
 	}
@@ -47,7 +54,7 @@ func NewAuthService(credentialsPath string) (*AuthService, error) {
 		Endpoint: google.Endpoint,
 	}
 
-	return &AuthService{config: config}, nil
+	return &AuthService{Config: config}, nil
 }
 
 func (s *AuthService) CreateYouTubeService(ctx context.Context) (*youtube.Service, error) {
@@ -57,17 +64,18 @@ func (s *AuthService) CreateYouTubeService(ctx context.Context) (*youtube.Servic
 
 func (s *AuthService) getClient() *http.Client {
 	tokenFile := "config/token.json"
-	token, err := s.tokenFromFile(tokenFile)
+	token, err := s.TokenFromFile(tokenFile)
 
 	if err != nil {
 		token = s.getTokenFromWeb()
-		s.saveToken(tokenFile, token)
+		s.SaveToken(tokenFile, token)
 	}
 
-	return s.config.Client(context.Background(), token)
+	return s.Config.Client(context.Background(), token)
 }
 
-func (s *AuthService) tokenFromFile(file string) (*oauth2.Token, error) {
+// TokenFromFile retrieves a token from a local file
+func (s *AuthService) TokenFromFile(file string) (*oauth2.Token, error) {
 	f, err := os.Open(file)
 	if err != nil {
 		return nil, err
@@ -78,7 +86,15 @@ func (s *AuthService) tokenFromFile(file string) (*oauth2.Token, error) {
 	return token, err
 }
 
-func (s *AuthService) saveToken(path string, token *oauth2.Token) {
+// IsTokenValid checks if the token is valid and not expired
+func (s *AuthService) IsTokenValid(token *oauth2.Token) bool {
+	if token == nil {
+		return false
+	}
+	return !token.Expiry.IsZero() && token.Expiry.After(time.Now())
+}
+
+func (s *AuthService) SaveToken(path string, token *oauth2.Token) {
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		log.Fatalf("Unable to cache oauth token: %v", err)
@@ -87,8 +103,12 @@ func (s *AuthService) saveToken(path string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
+func (s *AuthService) GetAuthURL() string {
+	return s.Config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+}
+
 func (s *AuthService) getTokenFromWeb() *oauth2.Token {
-	authURL := s.config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+	authURL := s.Config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	fmt.Printf("Go to the following link in your browser: \n%v\n", authURL)
 
 	codeCh := make(chan string)
@@ -107,7 +127,7 @@ func (s *AuthService) getTokenFromWeb() *oauth2.Token {
 	go server.ListenAndServe()
 	code := <-codeCh
 
-	token, err := s.config.Exchange(context.Background(), code)
+	token, err := s.Config.Exchange(context.Background(), code)
 	if err != nil {
 		log.Fatalf("Unable to retrieve token from web: %v", err)
 	}
