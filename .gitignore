@@ -26,3 +26,6 @@ build.sh
 # Build artifacts
 playlist_manager
 playlist-manager
+
+# node_modules
+node_modules
