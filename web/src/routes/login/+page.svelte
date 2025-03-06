@@ -9,21 +9,29 @@
 
     // Only access window in onMount which runs in the browser
     onMount(async () => {
+        console.log('Login page mounted');
+        
         // Check if we're handling the callback from YouTube auth
         urlParams = new URLSearchParams(window.location.search);
         code = urlParams.get('code');
         error = urlParams.get('error');
+        
+        console.log('URL params:', window.location.search);
+        console.log('Code:', code);
+        console.log('Error:', error);
 
         // If we have an error from auth, show it
         if (error) {
+            console.log('Authentication error:', error);
             errorMessage = 'Authentication failed. Please try again.';
             return;
         }
 
         // If we have a code, exchange it for a token
         if (code) {
+            console.log('Exchanging code for token');
             try {
-                const response = await fetch('/api/auth/callback', {
+                const response = await fetch('http://localhost:8080/api/auth/callback', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -47,7 +55,7 @@
 
         // Check if user is already authenticated
         try {
-            const response = await fetch('/api/playlists');
+            const response = await fetch('http://localhost:8080/api/playlists');
             if (response.ok) {
                 // User is already authenticated, redirect to home
                 window.location.href = '/home';
@@ -62,7 +70,7 @@
 
         // Get auth URL for login button
         try {
-            const response = await fetch('/api/auth/url');
+            const response = await fetch('http://localhost:8080/api/auth/url');
             if (response.ok) {
                 const data = await response.json();
                 authUrl = data.url;

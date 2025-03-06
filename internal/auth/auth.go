@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -22,10 +21,7 @@ type AuthService struct {
 
 func NewAuthService() (*AuthService, error) {
 	// Get absolute path to credentials file
-	absPath, err := filepath.Abs("config/credentials.json")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get absolute path: %v", err)
-	}
+	absPath := "/home/guy/Desktop/projects/playlist manager/config/credentials.json"
 
 	b, err := os.ReadFile(absPath)
 	if err != nil {
@@ -47,7 +43,7 @@ func NewAuthService() (*AuthService, error) {
 	config := &oauth2.Config{
 		ClientID:     oauthConfig.Web.ClientID,
 		ClientSecret: oauthConfig.Web.ClientSecret,
-		RedirectURL:  oauthConfig.Web.RedirectURIs[0],
+		RedirectURL:  "http://localhost:5173/login/callback",
 		Scopes: []string{
 			youtube.YoutubeReadonlyScope,
 		},
@@ -114,7 +110,7 @@ func (s *AuthService) getTokenFromWeb() *oauth2.Token {
 	codeCh := make(chan string)
 	server := &http.Server{Addr: ":8080"}
 
-	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/auth/callback", func(w http.ResponseWriter, r *http.Request) {
 		code := r.URL.Query().Get("code")
 		codeCh <- code
 		fmt.Fprintf(w, "Authorization successful! You can close this window.")

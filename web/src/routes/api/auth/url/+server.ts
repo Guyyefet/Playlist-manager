@@ -9,7 +9,7 @@ const credentials = JSON.parse(
 );
 
 const GOOGLE_CLIENT_ID = credentials.web.client_id;
-const GOOGLE_REDIRECT_URI = credentials.web.redirect_uris[0];
+const GOOGLE_REDIRECT_URI = 'http://localhost:5173/api/auth/callback';
 
 export const GET: RequestHandler = async () => {
   const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' + 

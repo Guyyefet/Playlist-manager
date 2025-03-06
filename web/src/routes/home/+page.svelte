@@ -10,11 +10,14 @@
   onMount(async () => {
     try {
       // Check authentication status
-      const authCheck = await fetch('/api/playlists');
+      const authCheck = await fetch('http://localhost:8080/api/playlists');
       if (authCheck.status === 401) {
         window.location.href = '/login';
         return;
       }
+      
+      // Load music playlists by default
+      await loadPlaylists('music');
     } catch (error) {
       console.error('Authentication check failed:', error);
       window.location.href = '/login';
@@ -25,8 +28,8 @@
     isLoading = true;
     try {
       const endpoint = view === 'music' 
-        ? '/api/playlists/music' 
-        : '/api/playlists';
+        ? 'http://localhost:8080/api/playlists/music' 
+        : 'http://localhost:8080/api/playlists';
       const response = await fetch(endpoint);
       if (!response.ok) throw new Error('Failed to fetch playlists');
       playlists = await response.json() as Playlist[];
