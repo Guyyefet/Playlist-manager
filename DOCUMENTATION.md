@@ -229,3 +229,27 @@ We implemented the following fixes:
 4. Avoid mixing client and server navigation approaches
 
 These changes ensure proper navigation handling while maintaining compatibility with SvelteKit's architecture.
+
+## OAuth Authentication Flow Fixes
+
+We encountered and fixed several issues with the OAuth authentication flow. For detailed information, see [OAUTH_FIX.md](OAUTH_FIX.md).
+
+### Key Improvements
+
+1. **Fixed Redirect URI Configuration**
+   - Updated the OAuth configuration to use the correct redirect URI
+   - Created a dedicated callback page in the frontend to handle the OAuth callback
+
+2. **Improved Auth URL Generation**
+   - Moved auth URL generation outside of the `onMount` function to ensure it's available immediately
+   - This fixed the "Auth URL is empty, cannot redirect" error
+
+3. **Optimized Callback Handling**
+   - Implemented a dual-approach strategy in the callback page
+   - Added performance timing and improved error handling
+   - Increased the delay before redirecting to ensure the token is properly saved
+
+4. **Fixed Proxy Configuration**
+   - Updated the Vite proxy configuration to correctly route requests to the backend
+
+These improvements have made the authentication flow more reliable and provided better visibility into what's happening during the process.

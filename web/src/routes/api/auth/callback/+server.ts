@@ -33,7 +33,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     
     try {
         // Exchange code for tokens with backend
-        const response = await fetch('http://localhost:8080/api/auth/callback', {
+        const response = await fetch('http://localhost:8080/login/callback', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

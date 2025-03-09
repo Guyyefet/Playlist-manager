@@ -1,63 +1,29 @@
 <script lang="ts">
     import { onMount } from 'svelte';
 
-    let authUrl = '';
+    // Generate the auth URL immediately
+    // This should be a Google OAuth URL that redirects to the callback endpoint
+    const clientId = '1027325691752-i9c97l70j8vh1aquchhsb8i7v7t9a4mn.apps.googleusercontent.com';
+    const redirectUri = encodeURIComponent('http://localhost:5173/login/callback');
+    const scope = encodeURIComponent('https://www.googleapis.com/auth/youtube.readonly');
+    
+    // Generate the auth URL outside of onMount to ensure it's available immediately
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=state-token`;
+    console.log('Generated auth URL:', authUrl);
+    
     let errorMessage = '';
-    let urlParams;
-    let code;
-    let error;
+    let isAuthenticated = false;
 
     // Only access window in onMount which runs in the browser
     onMount(async () => {
         console.log('Login page mounted');
-        
-        // Check if we're handling the callback from YouTube auth
-        urlParams = new URLSearchParams(window.location.search);
-        code = urlParams.get('code');
-        error = urlParams.get('error');
-        
-        console.log('URL params:', window.location.search);
-        console.log('Code:', code);
-        console.log('Error:', error);
-
-        // If we have an error from auth, show it
-        if (error) {
-            console.log('Authentication error:', error);
-            errorMessage = 'Authentication failed. Please try again.';
-            return;
-        }
-
-        // If we have a code, exchange it for a token
-        if (code) {
-            console.log('Exchanging code for token');
-            try {
-                const response = await fetch('http://localhost:8080/api/auth/callback', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ code })
-                });
-
-                if (response.ok) {
-                    // Redirect to home page after successful auth
-                    window.location.href = '/home';
-                    return;
-                } else {
-                    errorMessage = 'Authentication failed. Please try again.';
-                }
-            } catch (err) {
-                console.error('Error during authentication:', err);
-                errorMessage = 'An error occurred during authentication.';
-            }
-            return;
-        }
 
         // Check if user is already authenticated
         try {
-            const response = await fetch('http://localhost:8080/api/playlists');
+            const response = await fetch('/api/playlists');
             if (response.ok) {
                 // User is already authenticated, redirect to home
+                isAuthenticated = true;
                 window.location.href = '/home';
                 return;
             }
@@ -67,27 +33,20 @@
                 console.error('Error checking auth status:', err);
             }
         }
-
-        // Get auth URL for login button
-        try {
-            const response = await fetch('http://localhost:8080/api/auth/url');
-            if (response.ok) {
-                const data = await response.json();
-                authUrl = data.url;
-            } else {
-                errorMessage = 'Backend service unavailable. Please try again later.';
-            }
-        } catch (err) {
-            // Ignore 404 errors since backend might not be running
-            if (err instanceof Error && !err.message.includes('404')) {
-                console.error('Error fetching auth URL:', err);
-            }
-            errorMessage = 'Backend service unavailable. Please try again later.';
-        }
     });
 
     function handleLogin() {
-        window.location.href = authUrl;
+        console.log('Login button clicked');
+        console.log('Redirecting to auth URL:', authUrl);
+        
+        if (!authUrl) {
+            console.error('Auth URL is empty, cannot redirect');
+            errorMessage = 'Authentication service unavailable. Please try again later.';
+            return;
+        }
+        
+        // Use window.open instead of window.location.href for more reliable redirection
+        window.open(authUrl, '_self');
     }
 </script>
 

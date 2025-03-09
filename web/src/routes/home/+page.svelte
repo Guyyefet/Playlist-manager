@@ -10,7 +10,7 @@
   onMount(async () => {
     try {
       // Check authentication status
-      const authCheck = await fetch('http://localhost:8080/api/playlists');
+      const authCheck = await fetch('/api/playlists');
       if (authCheck.status === 401) {
         window.location.href = '/login';
         return;
@@ -28,8 +28,8 @@
     isLoading = true;
     try {
       const endpoint = view === 'music' 
-        ? 'http://localhost:8080/api/playlists/music' 
-        : 'http://localhost:8080/api/playlists';
+        ? '/api/playlists/music' 
+        : '/api/playlists';
       const response = await fetch(endpoint);
       if (!response.ok) throw new Error('Failed to fetch playlists');
       playlists = await response.json() as Playlist[];
@@ -81,12 +81,6 @@
     margin-bottom: 2rem;
   }
 
-  .view-buttons {
-    margin-bottom: 1rem;
-    display: flex;
-    gap: 0.5rem;
-  }
-
   .playlist-view-buttons {
     margin-top: 1rem;
     display: flex;
@@ -120,54 +114,5 @@
   .loading {
     margin: 1rem 0;
     color: #666;
-  }
-
-  .results-container {
-    display: grid;
-    gap: 1.5rem;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    margin-top: 2rem;
-  }
-
-  .result {
-    display: flex;
-    gap: 1rem;
-    padding: 1rem;
-    border-radius: 8px;
-    background: #fff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-
-  .result.video img {
-    width: 120px;
-    height: 90px;
-    border-radius: 4px;
-    object-fit: cover;
-  }
-
-  .result.playlist .icon {
-    font-size: 2rem;
-    width: 120px;
-    height: 90px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f0f0f0;
-    border-radius: 4px;
-  }
-
-  .details {
-    flex: 1;
-  }
-
-  .details h4 {
-    margin: 0 0 0.5rem;
-    font-size: 1.1rem;
-  }
-
-  .details p {
-    margin: 0;
-    color: #666;
-    font-size: 0.9rem;
   }
 </style>

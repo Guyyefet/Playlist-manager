@@ -14,7 +14,7 @@ export default defineConfig({
 				ws: true
 			},
 			'/login/callback': {
-				target: 'http://localhost:8080/api/auth/callback',
+				target: 'http://localhost:8080',
 				changeOrigin: true,
 				secure: false
 			}

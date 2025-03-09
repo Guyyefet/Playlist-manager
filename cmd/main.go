@@ -42,7 +42,7 @@ func main() {
 			}
 
 			// Skip auth check for auth endpoints
-			if r.URL.Path == "/api/auth/url" || r.URL.Path == "/api/auth/callback" {
+			if r.URL.Path == "/api/auth/url" || r.URL.Path == "/login/callback" {
 				next(w, r)
 				return
 			}
@@ -107,7 +107,7 @@ func main() {
 		})
 	})
 
-	http.HandleFunc("/api/auth/callback", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/login/callback", func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")

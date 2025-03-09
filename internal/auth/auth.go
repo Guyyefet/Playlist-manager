@@ -103,29 +103,41 @@ func (s *AuthService) GetAuthURL() string {
 	return s.Config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 }
 
-func (s *AuthService) getTokenFromWeb() *oauth2.Token {
-	authURL := s.Config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	fmt.Printf("Go to the following link in your browser: \n%v\n", authURL)
-
-	codeCh := make(chan string)
-	server := &http.Server{Addr: ":8080"}
-
-	http.HandleFunc("/api/auth/callback", func(w http.ResponseWriter, r *http.Request) {
-		code := r.URL.Query().Get("code")
-		codeCh <- code
-		fmt.Fprintf(w, "Authorization successful! You can close this window.")
-		go func() {
-			time.Sleep(time.Second)
-			server.Shutdown(context.Background())
-		}()
-	})
-
-	go server.ListenAndServe()
-	code := <-codeCh
-
+// New endpoint to handle frontend callback
+func (s *AuthService) HandleAuthCallback(w http.ResponseWriter, r *http.Request) {
+	code := r.URL.Query().Get("code")
 	token, err := s.Config.Exchange(context.Background(), code)
 	if err != nil {
-		log.Fatalf("Unable to retrieve token from web: %v", err)
+		http.Error(w, "Failed to exchange token", http.StatusBadRequest)
+		return
+	}
+
+	s.SaveToken("config/token.json", token)
+	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *AuthService) getCachedToken() *oauth2.Token {
+	token, err := s.TokenFromFile("config/token.json")
+	if err != nil {
+		return nil
 	}
 	return token
+}
+
+func (s *AuthService) getTokenFromWeb() *oauth2.Token {
+	authURL := s.GetAuthURL()
+	fmt.Printf("Go to the following link in your browser: \n%v\n", authURL)
+
+	// Use the new unified callback handler
+	server := &http.Server{Addr: ":8080"}
+	http.HandleFunc("/api/auth/callback", s.HandleAuthCallback)
+
+	go server.ListenAndServe()
+
+	// Wait for token validation
+	for !s.IsTokenValid(s.getCachedToken()) {
+		time.Sleep(1 * time.Second)
+	}
+	return s.getCachedToken()
 }
