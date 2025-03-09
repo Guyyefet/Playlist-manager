@@ -5,14 +5,38 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"playlist-manager/internal/auth"
 	"playlist-manager/internal/db"
+	"playlist-manager/internal/rate_limiter"
 	"playlist-manager/internal/youtube"
 )
 
 func main() {
 	ctx := context.Background()
+
+	// Initialize rate limiter
+	limiter := rate_limiter.NewRateLimiter(time.Minute)
+	limiter.SetLimit("/api/auth/status", 5)
+	limiter.SetLimit("/api/auth/url", 2)
+	limiter.SetLimit("/login/callback", 3)
+
+	// Rate limiting middleware
+	rateLimitMiddleware := func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			if !limiter.Allow(r.URL.Path) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusTooManyRequests)
+				json.NewEncoder(w).Encode(map[string]string{
+					"error":   "Too many requests",
+					"message": "Please wait before making another request",
+				})
+				return
+			}
+			next(w, r)
+		}
+	}
 
 	// Initialize auth service
 	authService, err := auth.NewAuthService()
@@ -89,7 +113,22 @@ func main() {
 		}
 	}))
 
-	http.HandleFunc("/api/auth/url", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/auth/status", rateLimitMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		// Set CORS headers
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		// Handle preflight requests
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		authService.HandleAuthStatus(w, r)
+	}))
+
+	http.HandleFunc("/api/auth/url", rateLimitMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -105,9 +144,9 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]string{
 			"url": authService.GetAuthURL(),
 		})
-	})
+	}))
 
-	http.HandleFunc("/login/callback", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/login/callback", rateLimitMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -174,7 +213,18 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]string{
 			"status": "success",
 		})
-	})
+	}))
+
+	http.HandleFunc("/api/auth/revoke", rateLimitMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		token := authService.GetCachedToken()
+		if token == nil {
+			http.Error(w, "No active token to revoke", http.StatusBadRequest)
+			return
+		}
+
+		authService.RevokeToken(token)
+		w.WriteHeader(http.StatusOK)
+	}))
 
 	http.HandleFunc("/api/playlists/music", authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Get YouTube service

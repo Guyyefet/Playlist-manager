@@ -253,3 +253,69 @@ We encountered and fixed several issues with the OAuth authentication flow. For 
    - Updated the Vite proxy configuration to correctly route requests to the backend
 
 These improvements have made the authentication flow more reliable and provided better visibility into what's happening during the process.
+
+## Authentication Status Checking
+
+### Overview
+The system now includes functionality to check authentication status without requiring re-authentication. This is handled through the `HandleAuthStatus` endpoint.
+
+### Implementation Details
+
+1. **Endpoint**
+   - Path: `/api/auth/status`
+   - Method: GET
+   - Response:
+     ```json
+     {
+       "authenticated": boolean,
+       "needsRefresh": boolean
+     }
+     ```
+
+2. **Debug Logging**
+   The authentication flow includes detailed debug logging:
+   - When authentication status is checked
+   - Current authentication status values
+   - Any errors during response encoding
+   - Successful completion of status check
+
+3. **Token Validation**
+   - Tokens are considered valid if:
+     - They exist in the token cache
+     - Have not expired
+     - Are not marked for refresh
+   - Tokens need refresh if they expire within 5 minutes
+
+4. **Usage Example**
+   ```go
+   func (s *AuthService) HandleAuthStatus(w http.ResponseWriter, r *http.Request) {
+       log.Printf("Checking authentication status")
+       
+       token := s.GetCachedToken()
+       authenticated := s.IsTokenValid(token)
+       needsRefresh := token != nil && token.Expiry.Before(time.Now().Add(5*time.Minute))
+       
+       log.Printf("Authentication status - Authenticated: %v, Needs Refresh: %v", 
+           authenticated, needsRefresh)
+       
+       response := AuthStatusResponse{
+           Authenticated: authenticated,
+           NeedsRefresh:  needsRefresh,
+       }
+
+       w.Header().Set("Content-Type", "application/json")
+       if err := json.NewEncoder(w).Encode(response); err != nil {
+           log.Printf("Error encoding auth status response: %v", err)
+           http.Error(w, "Internal server error", http.StatusInternalServerError)
+           return
+       }
+       
+       log.Printf("Successfully returned authentication status")
+   }
+   ```
+
+5. **Benefits**
+   - Reduces unnecessary re-authentication
+   - Provides clear status to frontend
+   - Helps maintain session continuity
+   - Enables proactive token refresh

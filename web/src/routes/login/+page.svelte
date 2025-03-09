@@ -18,20 +18,20 @@
     onMount(async () => {
         console.log('Login page mounted');
 
-        // Check if user is already authenticated
+        // Check authentication status
         try {
-            const response = await fetch('/api/playlists');
+            const response = await fetch('/api/auth/status');
             if (response.ok) {
-                // User is already authenticated, redirect to home
-                isAuthenticated = true;
-                window.location.href = '/home';
-                return;
+                const data = await response.json();
+                if (data.authenticated) {
+                    // User is already authenticated, redirect to home
+                    isAuthenticated = true;
+                    window.location.href = '/home';
+                    return;
+                }
             }
         } catch (err) {
-            // Ignore 404 errors since backend might not be running
-            if (err instanceof Error && !err.message.includes('404')) {
-                console.error('Error checking auth status:', err);
-            }
+            console.error('Error checking auth status:', err);
         }
     });
 

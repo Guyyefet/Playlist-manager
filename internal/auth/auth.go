@@ -16,7 +16,8 @@ import (
 )
 
 type AuthService struct {
-	Config *oauth2.Config
+	Config        *oauth2.Config
+	revokedTokens map[string]time.Time
 }
 
 func NewAuthService() (*AuthService, error) {
@@ -117,12 +118,43 @@ func (s *AuthService) HandleAuthCallback(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s *AuthService) getCachedToken() *oauth2.Token {
+func (s *AuthService) GetCachedToken() *oauth2.Token {
 	token, err := s.TokenFromFile("config/token.json")
 	if err != nil {
 		return nil
 	}
 	return token
+}
+
+// AuthStatusResponse represents the authentication status
+type AuthStatusResponse struct {
+	Authenticated bool `json:"authenticated"`
+	NeedsRefresh  bool `json:"needsRefresh"`
+}
+
+// HandleAuthStatus checks the current authentication status
+func (s *AuthService) HandleAuthStatus(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Checking authentication status")
+
+	token := s.GetCachedToken()
+	authenticated := s.IsTokenValid(token)
+	needsRefresh := token != nil && token.Expiry.Before(time.Now().Add(5*time.Minute))
+
+	log.Printf("Authentication status - Authenticated: %v, Needs Refresh: %v", authenticated, needsRefresh)
+
+	response := AuthStatusResponse{
+		Authenticated: authenticated,
+		NeedsRefresh:  needsRefresh,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding auth status response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Successfully returned authentication status")
 }
 
 func (s *AuthService) getTokenFromWeb() *oauth2.Token {
@@ -136,8 +168,19 @@ func (s *AuthService) getTokenFromWeb() *oauth2.Token {
 	go server.ListenAndServe()
 
 	// Wait for token validation
-	for !s.IsTokenValid(s.getCachedToken()) {
+	for !s.IsTokenValid(s.GetCachedToken()) {
 		time.Sleep(1 * time.Second)
 	}
-	return s.getCachedToken()
+	return s.GetCachedToken()
+}
+
+func (s *AuthService) RevokeToken(token *oauth2.Token) {
+	// Add token to revoked tokens map with current time
+	s.revokedTokens[token.AccessToken] = time.Now()
+
+	// Delete the token file
+	err := os.Remove("config/token.json")
+	if err != nil && !os.IsNotExist(err) {
+		log.Printf("Error removing token file: %v", err)
+	}
 }
