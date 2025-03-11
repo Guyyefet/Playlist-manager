@@ -27,5 +27,30 @@ scripts
 playlist_manager
 playlist-manager
 
-# node_modules
-node_modules
+# Config files
+/config/*
+!/config/example.*
+
+# Database files
+*.db
+*.db-journal
+playlists.db
+!web/prisma/migrations/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE files
+.vscode/
+.idea/
+
+# Build artifacts
+/dist/
+/build/
+/out/
+*.log
+
+# Node modules
+node_modules/

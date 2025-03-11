@@ -18,12 +18,12 @@
     onMount(async () => {
         console.log('Login page mounted');
 
-        // Check authentication status
+        // Check authentication status using TypeScript endpoint
         try {
             const response = await fetch('/api/auth/status');
             if (response.ok) {
-                const data = await response.json();
-                if (data.authenticated) {
+                const { authenticated } = await response.json();
+                if (authenticated) {
                     // User is already authenticated, redirect to home
                     isAuthenticated = true;
                     window.location.href = '/home';
@@ -32,6 +32,7 @@
             }
         } catch (err) {
             console.error('Error checking auth status:', err);
+            errorMessage = 'Failed to check authentication status';
         }
     });
 

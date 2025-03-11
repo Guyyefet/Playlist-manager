@@ -1,5 +1,6 @@
 import { json, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
+import { exchangeCodeForToken, saveToken } from '$lib/server/auth';
 
 // Handle GET request from Google OAuth redirect
 export const GET: RequestHandler = async ({ url, cookies }) => {
@@ -32,28 +33,19 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     const { code } = await request.json();
     
     try {
-        // Exchange code for tokens with backend
-        const response = await fetch('http://localhost:8080/login/callback', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ code })
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to exchange code for tokens');
-        }
+        // Exchange code for tokens using local implementation
+        const token = await exchangeCodeForToken(code);
+        await saveToken(token);
 
         // Set auth token cookie
-        cookies.set('auth_token', 'authenticated', {
+        cookies.set('auth_token', token.access_token, {
             path: '/',
             httpOnly: true,
             sameSite: 'strict',
             maxAge: 60 * 60 * 24 * 7 // 1 week
         });
 
-        return json({ success: true });
+        return json({ success: true, token });
     } catch (error) {
         console.error('Auth callback error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
