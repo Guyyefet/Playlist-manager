@@ -34,40 +34,8 @@
             console.time('Token exchange');
             console.log('Sending POST request to /login/callback with code');
             
-            // First try a direct request to the backend
-            try {
-                console.log('Trying direct request to backend...');
-                const directResponse = await fetch('http://localhost:8080/login/callback', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ code })
-                });
-                
-                console.log('Direct backend response status:', directResponse.status);
-                
-                if (directResponse.ok) {
-                    console.log('Direct backend request successful');
-                    console.timeEnd('Token exchange');
-                    
-                    console.log('Authentication successful, redirecting to home');
-                    // Add a small delay to ensure the token is saved before redirecting
-                    setTimeout(() => {
-                        // Redirect to home page after successful auth
-                        window.location.href = '/home';
-                    }, 1000); // Increased delay to 1 second
-                    return;
-                } else {
-                    console.log('Direct backend request failed, trying proxy...');
-                }
-            } catch (err) {
-                console.error('Error with direct backend request:', err);
-                console.log('Falling back to proxy...');
-            }
-            
-            // Fall back to the proxy if direct request fails
-            const response = await fetch('/login/callback', {
+            // Use the SvelteKit endpoint directly
+            const response = await fetch('/api/auth/callback', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

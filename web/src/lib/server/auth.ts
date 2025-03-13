@@ -2,6 +2,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { google } from 'googleapis';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 import type { Token } from '../types';
 
@@ -10,19 +11,35 @@ interface FileSystemError extends Error {
 }
 
 interface Credentials {
-  client_id: string;
-  client_secret: string;
-  redirect_uris: string[];
+  web: {
+    client_id: string;
+    client_secret: string;
+    redirect_uris: string[];
+    project_id?: string;
+    auth_uri?: string;
+    token_uri?: string;
+    auth_provider_x509_cert_url?: string;
+  };
 }
 
 export async function createOAuthClient() {
-  const credentialsPath = path.join(process.cwd(), 'config', 'credentials.json');
-  const credentials = JSON.parse(await fs.readFile(credentialsPath, 'utf-8')) as Credentials;
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const credentialsPath = path.join(__dirname, '../../../../config/credentials.json');
+  const credentials = JSON.parse(await fs.readFile(credentialsPath, 'utf-8'));
   
+  if (!credentials.web) {
+    throw new Error('Invalid credentials format - missing web property');
+  }
+  
+  if (!credentials.web.redirect_uris || !credentials.web.redirect_uris.length) {
+    throw new Error('No redirect URIs configured in credentials');
+  }
+
   return new OAuth2Client({
-    clientId: credentials.client_id,
-    clientSecret: credentials.client_secret,
-    redirectUri: credentials.redirect_uris[0]
+    clientId: credentials.web.client_id,
+    clientSecret: credentials.web.client_secret,
+    redirectUri: credentials.web.redirect_uris[0]
   });
 }
 

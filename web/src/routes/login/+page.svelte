@@ -1,24 +1,33 @@
 <script lang="ts">
     import { onMount } from 'svelte';
 
-    // Generate the auth URL immediately
-    // This should be a Google OAuth URL that redirects to the callback endpoint
-    const clientId = '1027325691752-i9c97l70j8vh1aquchhsb8i7v7t9a4mn.apps.googleusercontent.com';
-    const redirectUri = encodeURIComponent('http://localhost:5173/login/callback');
-    const scope = encodeURIComponent('https://www.googleapis.com/auth/youtube.readonly');
-    
-    // Generate the auth URL outside of onMount to ensure it's available immediately
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=state-token`;
-    console.log('Generated auth URL:', authUrl);
-    
+    let authUrl: string | null = null;
+    let isLoading = true;
     let errorMessage = '';
     let isAuthenticated = false;
 
-    // Only access window in onMount which runs in the browser
     onMount(async () => {
         console.log('Login page mounted');
 
-        // Check authentication status using TypeScript endpoint
+        // Get auth URL from server
+        try {
+            const response = await fetch('/api/auth/url');
+            if (!response.ok) {
+                throw new Error('Failed to get auth URL');
+            }
+            
+            const { url } = await response.json();
+            if (!url || typeof url !== 'string') {
+                throw new Error('Invalid auth URL received');
+            }
+            
+            authUrl = url;
+        } catch (err) {
+            console.error('Error getting auth URL:', err);
+            errorMessage = 'Failed to get authentication URL. Please try again later.';
+        }
+
+        // Check authentication status
         try {
             const response = await fetch('/api/auth/status');
             if (response.ok) {
@@ -34,11 +43,12 @@
             console.error('Error checking auth status:', err);
             errorMessage = 'Failed to check authentication status';
         }
-    });
 
+        isLoading = false;
+    });
+    
     function handleLogin() {
         console.log('Login button clicked');
-        console.log('Redirecting to auth URL:', authUrl);
         
         if (!authUrl) {
             console.error('Auth URL is empty, cannot redirect');
@@ -53,12 +63,32 @@
 
 <div class="login-container">
     <h1>Playlist Manager Login</h1>
-    <button on:click={handleLogin} class="login-button">
-        Login with Google
-    </button>
+    
+    {#if isLoading}
+        <div class="loading">Loading...</div>
+    {:else if errorMessage}
+        <div class="error">{errorMessage}</div>
+        <button on:click={() => window.location.reload()} class="login-button">
+            Try Again
+        </button>
+    {:else}
+        <button on:click={handleLogin} class="login-button">
+            Login with Google
+        </button>
+    {/if}
 </div>
 
 <style>
+    .loading {
+        color: #666;
+        margin-bottom: 1rem;
+    }
+    
+    .error {
+        color: #cc0000;
+        margin-bottom: 1rem;
+    }
+    
     .login-container {
         display: flex;
         flex-direction: column;
