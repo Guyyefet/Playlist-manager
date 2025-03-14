@@ -24,3 +24,22 @@ export interface Token {
   expiry_date: number;
   email: string;
 }
+
+export interface TestUser {
+  id: string;
+  email: string;
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface Credentials {
+  web: {
+    client_id: string;
+    client_secret: string;
+    redirect_uris: string[];
+    project_id?: string;
+    auth_uri?: string;
+    token_uri?: string;
+    auth_provider_x509_cert_url?: string;
+  };
+}

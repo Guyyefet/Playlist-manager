@@ -1,19 +1,15 @@
 import { json, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
-import { exchangeCodeForToken, saveToken } from '$lib/server/auth';
+import { exchangeCodeForToken, createOAuthClient } from '$lib/server/auth/oauth';
+import { saveToken } from '$lib/server/auth/tokens';
 
 // Handle GET request from Google OAuth redirect
 export const GET: RequestHandler = async ({ url, cookies }) => {
-    console.log('Received callback GET request with URL:', url.toString());
-    
     const code = url.searchParams.get('code');
     const error = url.searchParams.get('error');
     
-    console.log('Code:', code);
-    console.log('Error:', error);
-    
     if (error) {
-        console.log('Redirecting to login with error');
+        console.error('OAuth error:', error);
         // Redirect to login page with error
         return redirect(302, `/login?error=${error}`);
     }
@@ -33,8 +29,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     const { code } = await request.json();
     
     try {
-        // Exchange code for tokens using local implementation
-        const token = await exchangeCodeForToken(code);
+        // Create OAuth client and exchange code for tokens
+        const client = await createOAuthClient();
+        const token = await exchangeCodeForToken(client, code);
         await saveToken(token);
 
         // Set auth token cookie

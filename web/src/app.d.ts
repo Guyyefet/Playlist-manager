@@ -7,6 +7,7 @@ declare global {
 			user?: {
 				email: string;
 			};
+			cookies: import('@sveltejs/kit').Cookies;
 		}
 		// interface PageData {}
 		// interface PageState {}

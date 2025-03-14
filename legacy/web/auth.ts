@@ -3,23 +3,19 @@ import { google } from 'googleapis';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'node:crypto';
+import type { Cookies } from '@sveltejs/kit';
+
+declare module App {
+  interface Locals {
+    cookies: Cookies;
+  }
+}
 
 import type { Token } from '../types';
 
 interface FileSystemError extends Error {
   code: string;
-}
-
-interface Credentials {
-  web: {
-    client_id: string;
-    client_secret: string;
-    redirect_uris: string[];
-    project_id?: string;
-    auth_uri?: string;
-    token_uri?: string;
-    auth_provider_x509_cert_url?: string;
-  };
 }
 
 export async function createOAuthClient() {
@@ -160,7 +156,9 @@ export interface AuthStatus {
 }
 
 export async function checkAuthStatus(locals: App.Locals): Promise<AuthStatus> {
-  const token = await getToken();
+  // Get token from cookie or file
+  const cookieToken = parseSessionCookie(locals.cookies);
+  const token = cookieToken || await getToken();
   
   if (!token || !isTokenValid(token)) {
     return { authenticated: false };
@@ -171,6 +169,7 @@ export async function checkAuthStatus(locals: App.Locals): Promise<AuthStatus> {
     const client = await createOAuthClient();
     const refreshedToken = await refreshToken(client, token);
     await saveToken(refreshedToken);
+    setSessionCookie(locals.cookies, refreshedToken);
   }
 
   return {
@@ -179,4 +178,51 @@ export async function checkAuthStatus(locals: App.Locals): Promise<AuthStatus> {
       email: token.email
     }
   };
+}
+
+// Cookie handling utilities
+const COOKIE_NAME = 'session';
+const CSRF_COOKIE_NAME = 'csrf_token';
+const SESSION_MAX_AGE = 3600; // 1 hour
+
+function setSessionCookie(cookies: Cookies, token: Token) {
+  cookies.set(COOKIE_NAME, token.access_token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: SESSION_MAX_AGE,
+    path: '/'
+  });
+  
+  // Set CSRF token as separate cookie
+  const csrfToken = generateCsrfToken();
+  cookies.set(CSRF_COOKIE_NAME, csrfToken, {
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: SESSION_MAX_AGE,
+    path: '/'
+  });
+}
+
+function parseSessionCookie(cookies: Cookies): Token | null {
+  const accessToken = cookies.get(COOKIE_NAME);
+  if (!accessToken) return null;
+
+  return {
+    access_token: accessToken,
+    refresh_token: '', // Only stored in token.json
+    expiry_date: Date.now() + SESSION_MAX_AGE * 1000,
+    email: '',
+    scope: '',
+    token_type: 'Bearer'
+  };
+}
+
+function generateCsrfToken(): string {
+  return crypto.randomBytes(16).toString('hex');
+}
+
+export function validateCsrfToken(cookies: Cookies, requestToken: string): boolean {
+  const csrfToken = cookies.get(CSRF_COOKIE_NAME);
+  return csrfToken === requestToken;
 }
