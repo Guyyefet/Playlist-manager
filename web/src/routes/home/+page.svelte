@@ -2,26 +2,20 @@
   import PlaylistList from '$lib/PlaylistList.svelte';
   import type { Playlist } from '$lib/types';
   import { onMount } from 'svelte';
+  export let data;
   
   let playlists: Playlist[] = [];
   let isLoading = false;
   let activePlaylistView: 'all' | 'music' = 'music';
 
   onMount(async () => {
-    try {
-      // Check authentication status
-      const authCheck = await fetch('/api/playlists');
-      if (authCheck.status === 401) {
-        window.location.href = '/login';
-        return;
-      }
-      
-      // Load music playlists by default
-      await loadPlaylists('music');
-    } catch (error) {
-      console.error('Authentication check failed:', error);
+    if (!data.user) {
       window.location.href = '/login';
+      return;
     }
+    
+    // Load music playlists by default
+    await loadPlaylists('music');
   });
 
   async function loadPlaylists(view: 'all' | 'music') {

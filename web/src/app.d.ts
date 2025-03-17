@@ -1,12 +1,12 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
+import type { Token } from '$lib/types';
+
 declare global {
 	namespace App {
 		// interface Error {}
 		interface Locals {
-			user?: {
-				email: string;
-			};
+			user?: Token;
 			cookies: import('@sveltejs/kit').Cookies;
 		}
 		// interface PageData {}

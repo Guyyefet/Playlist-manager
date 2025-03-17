@@ -7,11 +7,12 @@ const CSRF_COOKIE_NAME = 'csrf_token';
 const SESSION_MAX_AGE = 3600;
 
 export function setSessionCookies(cookies: Cookies, token: Token) {
-  cookies.set(COOKIE_NAME, token.access_token, {
+  const sessionData = JSON.stringify(token);
+  cookies.set(COOKIE_NAME, Buffer.from(sessionData).toString('base64'), {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: SESSION_MAX_AGE,
+    secure: process.env.NODE_ENV !== 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 7,
     path: '/'
   });
   
@@ -24,15 +25,15 @@ export function setSessionCookies(cookies: Cookies, token: Token) {
 }
 
 export function parseSessionCookie(cookies: Cookies): Token | null {
-  const accessToken = cookies.get(COOKIE_NAME);
-  return accessToken ? {
-    access_token: accessToken,
-    refresh_token: '',
-    expiry_date: Date.now() + SESSION_MAX_AGE * 1000,
-    email: '',
-    scope: '',
-    token_type: 'Bearer'
-  } : null;
+  const cookieValue = cookies.get(COOKIE_NAME);
+  if (!cookieValue) return null;
+  
+  try {
+    return JSON.parse(Buffer.from(cookieValue, 'base64').toString());
+  } catch (error) {
+    console.error('Failed to parse session cookie:', error);
+    return null;
+  }
 }
 
 export function validateCsrfToken(cookies: Cookies, requestToken: string): boolean {

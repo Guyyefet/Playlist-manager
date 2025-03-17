@@ -17,12 +17,24 @@ export interface Playlist {
 }
 
 export interface Token {
-  access_token: string;
-  refresh_token: string;
-  scope: string;
-  token_type: string;
-  expiry_date: number;
+  /** User's email address */
   email: string;
+  /** OAuth access token */
+  access_token: string;
+  /** OAuth refresh token */
+  refresh_token: string;
+  /** Number of seconds until token expires from issue time */
+  expires_in: number;
+  /** Exact timestamp (milliseconds since epoch) when token expires */
+  expiry_date: number;
+  /** Scopes granted by the OAuth provider */
+  scope: string;
+  /** Type of token (usually 'Bearer') */
+  token_type: string;
+}
+
+export interface PageData {
+  user?: Token;
 }
 
 export interface TestUser {

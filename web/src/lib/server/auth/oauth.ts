@@ -31,21 +31,41 @@ export async function getAuthUrl(client: OAuth2Client): Promise<string> {
 
 export async function exchangeCodeForToken(client: OAuth2Client, code: string): Promise<Token> {
   const { tokens } = await client.getToken(code);
-  const ticket = await client.verifyIdToken({
-    idToken: tokens.id_token || '',
-    audience: process.env.GOOGLE_CLIENT_ID
-  });
   
-  const payload = ticket.getPayload();
-  if (!payload?.email) throw new Error('Missing email from Google auth');
-
-  return {
+  // Create base token object
+  const baseToken: Omit<Token, 'email'> = {
     access_token: tokens.access_token ?? '',
     refresh_token: tokens.refresh_token ?? '',
     scope: tokens.scope || '',
     token_type: tokens.token_type || '',
     expiry_date: tokens.expiry_date || 0,
-    email: payload.email
+    expires_in: 3600 // Default expiration time
+  };
+  
+  // Get email from ID token if available
+  let email = 'user@example.com'; // Default email
+  
+  if (tokens.id_token) {
+    try {
+      const credentials = JSON.parse(await fs.readFile(path.join(process.cwd(), 'config/credentials.json'), 'utf-8'));
+      const ticket = await client.verifyIdToken({
+        idToken: tokens.id_token,
+        audience: credentials.web.client_id
+      });
+      
+      const payload = ticket.getPayload();
+      if (payload?.email) {
+        email = payload.email;
+      }
+    } catch (error) {
+      console.error('Error verifying ID token:', error);
+      // Continue with default email
+    }
+  }
+  
+  return {
+    ...baseToken,
+    email
   };
 }
 

@@ -2,6 +2,7 @@ import { json, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { exchangeCodeForToken, createOAuthClient } from '$lib/server/auth/oauth';
 import { saveToken } from '$lib/server/auth/tokens';
+import { setSessionCookies } from '$lib/server/auth/sessions';
 
 // Handle GET request from Google OAuth redirect
 export const GET: RequestHandler = async ({ url, cookies }) => {
@@ -19,10 +20,19 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
         return json({ success: false, error: 'No authorization code provided' }, { status: 400 });
     }
     
-    console.log('Redirecting to login with code');
-    // Redirect to login page with the code
-    // The login page will handle exchanging the code for tokens
-    return redirect(302, `/login?code=${code}`);
+    try {
+        // Exchange code for tokens directly in the callback
+        const client = await createOAuthClient();
+        const token = await exchangeCodeForToken(client, code);
+        await saveToken(token);
+
+        // Set session cookies using centralized function
+        setSessionCookies(cookies, token);
+        throw redirect(303, '/home');
+    } catch (error) {
+        console.error('Callback processing error:', error);
+        return redirect(302, `/login?error=oauth_failed`);
+    }
 };
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
@@ -34,15 +44,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         const token = await exchangeCodeForToken(client, code);
         await saveToken(token);
 
-        // Set auth token cookie
-        cookies.set('auth_token', token.access_token, {
-            path: '/',
-            httpOnly: true,
-            sameSite: 'strict',
-            maxAge: 60 * 60 * 24 * 7 // 1 week
-        });
-
-        return json({ success: true, token });
+        return json({ success: true });
     } catch (error) {
         console.error('Auth callback error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
