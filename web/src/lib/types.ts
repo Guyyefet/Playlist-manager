@@ -33,8 +33,19 @@ export interface Token {
   token_type: string;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  name: string | null;
+  accessToken: string;
+  refreshToken: string;
+  tokenExpiry: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface PageData {
-  user?: Token;
+  user?: User;
 }
 
 export interface TestUser {
@@ -42,6 +53,13 @@ export interface TestUser {
   email: string;
   accessToken: string;
   refreshToken: string;
+}
+
+export interface AuthStatus {
+  authenticated: boolean;
+  user?: {
+    email: string;
+  };
 }
 
 export interface Credentials {

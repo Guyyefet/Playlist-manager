@@ -52,6 +52,12 @@ The migration will be implemented in phases to ensure a smooth transition while 
    - Implement complete OAuth flow in SvelteKit
    - Create session management using cookies or JWT
    - Implement rate limiting middleware
+   - Migrate token storage from file-based to database-backed:
+     - Store OAuth tokens in the OAuthToken table with proper encryption
+     - Implement session tracking in the Session table
+     - Link authentication data with user accounts
+     - Add token refresh and validation using database queries
+     - Implement proper session expiration and cleanup
 
 2. **Playlist Management**:
    - Recreate playlist fetching and processing logic

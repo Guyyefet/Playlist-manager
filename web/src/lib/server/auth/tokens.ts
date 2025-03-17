@@ -1,36 +1,43 @@
+import { prisma } from '../db';
+import { encrypt, decrypt } from '../crypto';
+import type { Token, AuthStatus } from '../../types';
+import type { OAuth2Client } from 'google-auth-library';
+import type { Cookies } from '@sveltejs/kit';
+import { createOAuthClient } from './oauth';
 import { promises as fs } from 'fs';
 import path from 'path';
-import type { Token } from '../../types';
-import type { OAuth2Client } from 'google-auth-library';
-import type { Cookies, Locals } from '@sveltejs/kit';
-import { parseSessionCookie, setSessionCookies } from './sessions';
 
-declare module '@sveltejs/kit' {
-  interface Locals {
-    cookies: Cookies;
-  }
-}
-import { createOAuthClient } from './oauth';
+// Import Locals from App namespace
+type Locals = App.Locals;
 
-interface FileSystemError extends Error {
-  code: string;
-}
-
-export async function getToken(): Promise<Token | null> {
-  try {
-    const tokenPath = path.join(process.cwd(), 'config', 'token.json');
-    return JSON.parse(await fs.readFile(tokenPath, 'utf-8'));
-  } catch (error: unknown) {
-    const fsError = error as FileSystemError;
-    if (fsError.code === 'ENOENT') return null;
-    throw error;
-  }
+export async function saveToken(userId: string, token: Token): Promise<void> {
+  // Instead of creating a new OAuthToken record, update the User record
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      accessToken: token.access_token,
+      refreshToken: token.refresh_token || '',
+      tokenExpiry: new Date(token.expiry_date)
+    }
+  });
 }
 
-export async function saveToken(token: Token) {
-  const tokenPath = path.join(process.cwd(), 'config', 'token.json');
-  await fs.mkdir(path.dirname(tokenPath), { recursive: true });
-  await fs.writeFile(tokenPath, JSON.stringify(token));
+export async function getToken(userId: string): Promise<Token | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId }
+  });
+
+  if (!user) return null;
+
+  return {
+    access_token: user.accessToken,
+    refresh_token: user.refreshToken,
+    expiry_date: user.tokenExpiry.getTime(),
+    email: user.email,
+    expires_in: 3600, // Default value
+    scope: 'https://www.googleapis.com/auth/youtube.readonly email profile openid',
+    token_type: 'Bearer'
+  };
 }
 
 export function isTokenValid(token: Token | null): boolean {
@@ -57,23 +64,20 @@ export async function revokeToken(client: OAuth2Client, token: Token) {
   try {
     await fs.unlink(tokenPath);
   } catch (error: unknown) {
-    const fsError = error as FileSystemError;
-    if (fsError.code !== 'ENOENT') throw error;
+    // Handle file not found error
+    if ((error as any).code !== 'ENOENT') throw error;
   }
 }
 
-export interface AuthStatus {
-  authenticated: boolean;
-  user?: {
-    email: string;
-  };
-}
-
 export async function checkAuthStatus(locals: Locals): Promise<AuthStatus> {
-  const { cookies } = locals;
-  // Get token from cookie or file
-  const cookieToken = parseSessionCookie(cookies);
-  const token = cookieToken || await getToken();
+  const { user } = locals;
+  
+  if (!user) {
+    return { authenticated: false };
+  }
+  
+  // Get token from database using user ID
+  const token = await getToken(user.id);
   
   if (!token || !isTokenValid(token)) {
     return { authenticated: false };
@@ -81,16 +85,22 @@ export async function checkAuthStatus(locals: Locals): Promise<AuthStatus> {
 
   // Refresh token if needed
   if (needsTokenRefresh(token)) {
-    const client = await createOAuthClient();
-    const refreshedToken = await refreshToken(client, token);
-    await saveToken(refreshedToken);
-    setSessionCookies(cookies, refreshedToken);
+    try {
+      const client = await createOAuthClient();
+      const refreshedToken = await refreshToken(client, token);
+      
+      // Update the user record with the refreshed token
+      await saveToken(user.id, refreshedToken);
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      // Continue with the existing token
+    }
   }
 
   return {
     authenticated: true,
     user: {
-      email: token.email
+      email: user.email
     }
   };
 }

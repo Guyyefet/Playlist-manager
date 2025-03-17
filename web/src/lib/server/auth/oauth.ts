@@ -24,7 +24,12 @@ export async function createOAuthClient() {
 export async function getAuthUrl(client: OAuth2Client): Promise<string> {
   return client.generateAuthUrl({
     access_type: 'offline',
-    scope: ['https://www.googleapis.com/auth/youtube.readonly'],
+    scope: [
+      'https://www.googleapis.com/auth/youtube.readonly',
+      'email',
+      'profile',
+      'openid'
+    ],
     prompt: 'consent'
   });
 }
@@ -42,11 +47,12 @@ export async function exchangeCodeForToken(client: OAuth2Client, code: string): 
     expires_in: 3600 // Default expiration time
   };
   
-  // Get email from ID token if available
-  let email = 'user@example.com'; // Default email
+  // Get email from ID token
+  let email = '';
   
-  if (tokens.id_token) {
-    try {
+  try {
+    // If we have an ID token, try to get the email from it
+    if (tokens.id_token) {
       const credentials = JSON.parse(await fs.readFile(path.join(process.cwd(), 'config/credentials.json'), 'utf-8'));
       const ticket = await client.verifyIdToken({
         idToken: tokens.id_token,
@@ -57,10 +63,18 @@ export async function exchangeCodeForToken(client: OAuth2Client, code: string): 
       if (payload?.email) {
         email = payload.email;
       }
-    } catch (error) {
-      console.error('Error verifying ID token:', error);
-      // Continue with default email
     }
+    
+    // If we still don't have an email, use a default one for development
+    if (!email) {
+      console.warn('Could not get email from ID token, using default email for development');
+      email = 'user@example.com';
+    }
+  } catch (error) {
+    console.error('Error getting user email:', error);
+    // Use a default email for development
+    console.warn('Using default email for development due to error');
+    email = 'user@example.com';
   }
   
   return {

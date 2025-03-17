@@ -1,45 +1,63 @@
-import crypto from 'node:crypto';
+import { prisma } from '../db';
+import { v4 as uuidv4 } from 'uuid';
 import type { Cookies } from '@sveltejs/kit';
-import type { Token } from '../../types';
+import type { User } from '../../types';
+import { encrypt } from '../crypto';
 
-const COOKIE_NAME = 'session';
-const CSRF_COOKIE_NAME = 'csrf_token';
-const SESSION_MAX_AGE = 3600;
+const COOKIE_NAME = 'session_id';
+const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 1 week
 
-export function setSessionCookies(cookies: Cookies, token: Token) {
-  const sessionData = JSON.stringify(token);
-  cookies.set(COOKIE_NAME, Buffer.from(sessionData).toString('base64'), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV !== 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7,
-    path: '/'
+export async function createSession(cookies: Cookies, user: User, oauthToken?: string) {
+  // Generate secure session token
+  const sessionToken = uuidv4();
+  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1000);
+
+  // Create database session
+  await prisma.session.create({
+    data: {
+      token: sessionToken,
+      userId: user.id,
+      expiresAt
+    }
   });
-  
-  cookies.set(CSRF_COOKIE_NAME, generateCsrfToken(), {
+
+  // Set session cookie
+  cookies.set(COOKIE_NAME, sessionToken, {
+    httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge: SESSION_MAX_AGE,
     path: '/'
   });
 }
 
-export function parseSessionCookie(cookies: Cookies): Token | null {
-  const cookieValue = cookies.get(COOKIE_NAME);
-  if (!cookieValue) return null;
-  
-  try {
-    return JSON.parse(Buffer.from(cookieValue, 'base64').toString());
-  } catch (error) {
-    console.error('Failed to parse session cookie:', error);
+export async function validateSession(cookies: Cookies): Promise<User | null> {
+  const sessionToken = cookies.get(COOKIE_NAME);
+  if (!sessionToken) return null;
+
+  // Get session from database
+  const session = await prisma.session.findUnique({
+    where: { token: sessionToken },
+    include: { user: true }
+  });
+
+  // Check if session is valid
+  if (!session || session.expiresAt < new Date()) {
     return null;
   }
+
+  return session.user;
 }
 
-export function validateCsrfToken(cookies: Cookies, requestToken: string): boolean {
-  return cookies.get(CSRF_COOKIE_NAME) === requestToken;
-}
+export async function deleteSession(cookies: Cookies) {
+  const sessionToken = cookies.get(COOKIE_NAME);
+  if (!sessionToken) return;
 
-function generateCsrfToken(): string {
-  return crypto.randomBytes(16).toString('hex');
+  // Delete from database
+  await prisma.session.deleteMany({
+    where: { token: sessionToken }
+  });
+
+  // Clear cookie
+  cookies.delete(COOKIE_NAME, { path: '/' });
 }

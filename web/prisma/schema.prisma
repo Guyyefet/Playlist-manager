@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,46 +8,46 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
+  id           String     @id @default(uuid())
+  email        String     @unique
   name         String?
   accessToken  String
-  refreshToken String  @default("")
+  refreshToken String     @default("")
   tokenExpiry  DateTime
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   playlists    Playlist[]
   sessions     Session[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
 }
 
 model Session {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model Playlist {
   id          String   @id @default(uuid())
   name        String   @unique
   description String?
-  videos      Video[]
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+  videos      Video[]
 }
 
 model Video {
   id         String   @id @default(uuid())
   playlistId String
-  playlist   Playlist @relation(fields: [playlistId], references: [id])
   title      String
   videoId    String   @unique
   url        String
   status     String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  playlist   Playlist @relation(fields: [playlistId], references: [id])
 }
