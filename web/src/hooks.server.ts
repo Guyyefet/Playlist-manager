@@ -17,14 +17,14 @@ export const handle: Handle = async ({ event, resolve }) => {
       event.locals.token = null;
     } else {
       // Clear invalid session cookie
-      event.cookies.delete('session', { path: '/' });
+      event.cookies.delete('session_id', { path: '/' });
       event.locals.user = undefined;
       event.locals.token = null;
     }
   } catch (error) {
     console.error('Session parsing error:', error);
     // Clear invalid session cookie
-    event.cookies.delete('session', { path: '/' });
+    event.cookies.delete('session_id', { path: '/' });
   }
 
   // Protect routes that require authentication

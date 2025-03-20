@@ -1,4 +1,3 @@
-
 import { OAuth2Client } from 'google-auth-library';
 import { google } from 'googleapis';
 import { promises as fs } from 'fs';

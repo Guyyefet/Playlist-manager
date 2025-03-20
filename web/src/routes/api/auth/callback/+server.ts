@@ -1,40 +1,22 @@
 import { json, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { exchangeCodeForToken, createOAuthClient } from '$lib/server/auth/oauth';
-import { saveToken } from '$lib/server/auth/tokens';
 import { createSession } from '$lib/server/auth/sessions';
-import { prisma } from '$lib/server/db';
+import { createUser, updateUserToken, getUserByEmail } from '$lib/server/auth/db';
 import type { Token, User } from '$lib/types';
 
 // Helper function to find or create user from token
 async function findOrCreateUser(token: Token): Promise<User> {
-    let user = await prisma.user.findUnique({
-        where: { email: token.email }
-    });
+    let user = await getUserByEmail(token.email);
     
     if (!user) {
         // Create new user
-        user = await prisma.user.create({
-            data: {
-                email: token.email,
-                accessToken: token.access_token,
-                refreshToken: token.refresh_token || '',
-                tokenExpiry: new Date(token.expiry_date)
-            }
-        });
+        user = await createUser(token);
     } else {
-        // Update existing user's tokens
-        user = await prisma.user.update({
-            where: { id: user.id },
-            data: {
-                accessToken: token.access_token,
-                refreshToken: token.refresh_token || '',
-                tokenExpiry: new Date(token.expiry_date)
-            }
-        });
+        // Update existing user's tokens using their ID
+        user = await updateUserToken(user.id, token);
     }
     
-    // Return the user directly - no need for conversion
     return user;
 }
 
@@ -62,9 +44,6 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
         // Find or create user
         const user = await findOrCreateUser(token);
         
-        // Save OAuth token
-        await saveToken(user.id, token);
-        
         // Create session
         await createSession(cookies, user, JSON.stringify(token));
         
@@ -86,9 +65,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         // Find or create user
         const user = await findOrCreateUser(token);
         
-        // Save OAuth token
-        await saveToken(user.id, token);
-
+        // Create session
+        await createSession(cookies, user, JSON.stringify(token));
+        
         return json({ success: true });
     } catch (error) {
         console.error('Auth callback error:', error);
