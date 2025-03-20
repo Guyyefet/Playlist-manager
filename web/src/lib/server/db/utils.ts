@@ -21,10 +21,11 @@ export async function executeInTransaction<T>(
   return prisma.$transaction(operations, options);
 }
 
-export function createWhereClause<T>(params: Partial<T>): Prisma.Sql {
-  const conditions = Object.entries(params)
+export function createWhereClause<T extends Record<string, any>>(params: Partial<T>): Partial<T> {
+  return Object.entries(params)
     .filter(([_, value]) => value !== undefined)
-    .map(([key, value]) => Prisma.sql`${Prisma.raw(key)} = ${value}`);
-  
-  return Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`;
+    .reduce((acc, [key, value]) => {
+      acc[key as keyof T] = value;
+      return acc;
+    }, {} as Partial<T>);
 }

@@ -54,20 +54,13 @@ export async function createUser(token: Token) {
   }
 }
 
-export async function getUserByEmail(email: string) {
+export async function getUser(params: Partial<{ id: string, email: string }>) {
   try {
-    return await prisma.user.findUnique({
-      where: { email }
-    });
-  } catch (error) {
-    handleDbError(error);
-  }
-}
-
-export async function getUserById(id: string) {
-  try {
-    return await prisma.user.findUnique({
-      where: { id }
+    // Use createWhereClause with proper type casting
+    const whereClause = createWhereClause<{ id: string; email: string }>(params);
+      
+    return await prisma.user.findFirst({
+      where: whereClause
     });
   } catch (error) {
     handleDbError(error);
