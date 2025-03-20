@@ -1,81 +1,86 @@
 # Playlist Manager Documentation
 
-## Database Schema Design
+## Database Architecture
 
-### Core Tables
+### Feature-Based DB Operations Structure
 
-```prisma
-model User {
-  id             String         @id @default(uuid())
-  email          String         @unique
-  passwordHash   String
-  sessions       Session[]
-  playlists      Playlist[]
-  oauthTokens    OAuthToken[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-}
-
-model Session {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-}
-
-model Playlist {
-  id          String          @id @default(uuid())
-  userId      String
-  user        User            @relation(fields: [userId], references: [id])
-  youtubeId   String          @unique
-  title       String
-  description String?
-  items       PlaylistItem[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-}
-
-model PlaylistItem {
-  id          String   @id @default(uuid())
-  playlistId  String
-  playlist    Playlist @relation(fields: [playlistId], references: [id])
-  youtubeId   String
-  position    Int
-  title       String
-  duration    String
-  createdAt   DateTime @default(now())
-}
-
-model OAuthToken {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])
-  accessToken  String   @encrypted
-  refreshToken String   @encrypted
-  expiresAt    DateTime
-  scope        String
-  createdAt    DateTime @default(now())
-}
+```mermaid
+graph TD
+    A[Database Layer] --> B[Core DB Utilities]
+    A --> C[Auth Feature]
+    A --> D[YouTube Feature]
+    
+    B --> B1[Prisma Client]
+    B --> B2[Transaction Helpers]
+    B --> B3[Error Handling]
+    
+    C --> C1[User Operations]
+    C --> C2[Session Management]
+    C --> C3[OAuth Token Storage]
+    
+    D --> D1[Playlist Operations]
+    D --> D2[Video Operations]
+    D --> D3[Sync Status Tracking]
 ```
 
-## Key Features
+### Core DB Utilities (`db/`)
+- `index.ts`: Exports prisma client and utilities
+- `utils.ts`: Shared DB utilities and helpers
+  - Transaction management
+  - Error handling wrappers
+  - Common query patterns
 
-1. **User Data Isolation**:
-   - All user-related tables include `userId` foreign keys
-   - Database queries always filter by authenticated user ID
-   - Row-level security enforced through application logic
+### Auth Feature DB Operations (`auth/db.ts`)
+```typescript
+// User Management
+createUser()
+updateUser()
+getUserByEmail()
 
-2. **Security**:
-   - Sessions automatically expire after 1 week
-   - OAuth tokens stored encrypted at rest
-   - Password hashing using bcrypt
+// Session Management
+createSession()
+getSessionByToken()
+deleteSession()
 
-3. **Performance**:
-   - Indexes on all foreign key fields
-   - Composite indexes on common query patterns
-   - Pagination support for large playlists
+// OAuth Token Management
+storeOAuthToken()
+getOAuthToken()
+```
+
+### YouTube Feature DB Operations (`youtube/data/`)
+```typescript
+// Playlist Operations
+createPlaylist()
+updatePlaylist()
+getUserPlaylists()
+deletePlaylist()
+
+// Video Operations
+addVideoToPlaylist()
+updateVideoPosition()
+removeVideoFromPlaylist()
+
+// Sync Operations
+updateSyncStatus()
+getPendingSyncs()
+```
+
+## Key Benefits
+
+1. **Feature Cohesion**:
+   - All related DB operations stay with their feature
+   - Clear boundaries between features
+   - Easier to understand complete feature flow
+
+2. **Maintainability**:
+   - Changes isolated to specific features
+   - Reduced risk of cross-feature impact
+   - Clearer responsibility boundaries
+
+3. **Scalability**:
+   - New features can be added independently
+   - Easier to split into microservices if needed
+   - Clear migration paths for feature evolution
 
 ## Data Access Patterns
 
@@ -83,19 +88,20 @@ model OAuthToken {
 sequenceDiagram
     participant Client
     participant API
-    participant DB
+    participant FeatureDB
+    participant CoreDB
     
-    Client->>API: Request with Session Cookie
-    API->>DB: Validate Session Token
-    DB-->>API: User ID
-    API->>DB: Query Data with User ID Filter
-    DB-->>API: User-Specific Results
-    API-->>Client: Filtered Response
+    Client->>API: Request
+    API->>FeatureDB: Feature-Specific Query
+    FeatureDB->>CoreDB: Use Shared Utilities
+    CoreDB-->>FeatureDB: Results
+    FeatureDB-->>API: Processed Data
+    API-->>Client: Response
 ```
 
-This schema supports:
-- Secure user authentication and session management
-- YouTube playlist metadata storage
-- Track-level organization within playlists
-- OAuth token management for YouTube API access
-- Audit trails through createdAt/updatedAt timestamps
+This structure provides:
+- Clear separation of concerns
+- Better feature isolation
+- Shared utilities without tight coupling
+- Easier testing and maintenance
+- Clearer evolution paths for features

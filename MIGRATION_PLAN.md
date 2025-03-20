@@ -85,8 +85,17 @@ The migration will be implemented in phases to ensure a smooth transition while 
 
 2. **Playlist Management**:
    - ⬜ Recreate playlist fetching and processing logic
+     - Enhance youtube.ts with complete playlist and video fetching
+     - Implement playlists.ts service with sync functionality
+     - Add pagination support for large playlists
    - ⬜ Implement music playlist detection algorithm
+     - Add isMusicPlaylist field to Playlist model
+     - Implement detection based on playlist title prefix
+     - Add API endpoints for music playlist operations
    - ⬜ Create unavailable video tracking system
+     - Implement video status checking in youtube.ts
+     - Add background processing for regular checks
+     - Create endpoints for unavailable video reporting
 
 3. **Data Processing**:
    - ⬜ Implement background processing using SvelteKit hooks or scheduled jobs

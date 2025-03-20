@@ -30,24 +30,34 @@ model Session {
 }
 
 model Playlist {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  userId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id])
-  videos      Video[]
+  id             String   @id @default(uuid())
+  youtubeId      String?  @unique
+  name           String   @unique
+  description    String?
+  userId         String
+  isMusicPlaylist Boolean  @default(false)
+  thumbnailUrl   String?
+  itemCount      Int      @default(0)
+  syncStatus     String   @default("PENDING") // PENDING, SYNCING, SYNCED, ERROR
+  lastSyncedAt   DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id])
+  videos         Video[]
 }
 
 model Video {
-  id         String   @id @default(uuid())
-  playlistId String
-  title      String
-  videoId    String   @unique
-  url        String
-  status     String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  playlist   Playlist @relation(fields: [playlistId], references: [id])
+  id           String   @id @default(uuid())
+  playlistId   String
+  title        String
+  videoId      String   @unique
+  url          String
+  description  String?
+  thumbnailUrl String?
+  position     Int?
+  status       String?  // public, private, deleted
+  availability Boolean  @default(true) // true = available, false = unavailable
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  playlist     Playlist @relation(fields: [playlistId], references: [id])
 }
