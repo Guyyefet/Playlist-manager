@@ -1,7 +1,7 @@
-import { prisma } from '../db';
+import { prisma } from '$db/index';
 import { v4 as uuidv4 } from 'uuid';
 import type { Cookies } from '@sveltejs/kit';
-import type { User } from '../../types';
+import type { User } from '$lib/types';
 import { encrypt } from '../crypto';
 
 const COOKIE_NAME = 'session_id';

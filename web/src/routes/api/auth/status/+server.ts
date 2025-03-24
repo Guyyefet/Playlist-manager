@@ -1,6 +1,6 @@
-import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
-import { checkAuthStatus } from '$lib/server/auth';
+import { json } from '@sveltejs/kit';
+import { checkAuthStatus } from '$auth/tokens';
 
 export const GET: RequestHandler = async ({ cookies, locals }) => {
   try {

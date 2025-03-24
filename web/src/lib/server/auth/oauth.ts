@@ -3,7 +3,7 @@ import { google } from 'googleapis';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import type { Token } from '../../types';
+import type { Token } from './types';
 
 export async function createOAuthClient() {
   const __filename = fileURLToPath(import.meta.url);

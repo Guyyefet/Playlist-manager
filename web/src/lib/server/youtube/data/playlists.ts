@@ -1,4 +1,4 @@
-import { prisma } from '../../db';
+import { prisma } from '$db/index';
 import type { YouTubePlaylistResponse, YouTubePlaylistItemResponse } from '../types';
 import { isMusicPlaylist, isVideoAvailable } from '../utils'
 

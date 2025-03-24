@@ -1,11 +1,11 @@
-import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '../$types';
-import { getYouTubeService } from '$lib/server/youtube';
+import { json } from '@sveltejs/kit';
+import { getYouTubeService } from '$youtube/api/client';
 import {
   getPlaylistById,
   addVideoToPlaylist,
   updateVideoStatus
-} from '$lib/server/data/playlists';
+} from '$youtube/data/playlists';
 
 export const GET: RequestHandler = async ({ locals }) => {
   // Check authentication

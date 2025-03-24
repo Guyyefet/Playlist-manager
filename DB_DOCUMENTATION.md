@@ -105,3 +105,27 @@ This structure provides:
 - Shared utilities without tight coupling
 - Easier testing and maintenance
 - Clearer evolution paths for features
+
+## Type System
+
+### Current Implementation
+We currently re-export Prisma types through `src/lib/types.ts` with basic field selection. This provides:
+- A single source of truth for core types
+- Basic decoupling from Prisma
+- Explicit field visibility control
+
+### Future Improvements
+Planned enhancements to the type system:
+1. Stronger typing for relations (UserWithSessions, etc.)
+2. Validation types for API boundaries
+3. GraphQL type compatibility
+4. Fine-grained field selection per use case
+5. Type-safe query builders
+
+```mermaid
+graph LR
+    A[Prisma Schema] --> B[Core Types]
+    B --> C[Feature-Specific Types]
+    C --> D[API Contracts]
+    C --> E[UI Props]
+```

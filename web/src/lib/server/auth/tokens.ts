@@ -1,5 +1,5 @@
 import { encrypt, decrypt } from '../crypto';
-import type { Token, AuthStatus } from '../../types';
+import type { Token, AuthStatus } from './types';
 import type { OAuth2Client } from 'google-auth-library';
 import { createOAuthClient } from './oauth';
 import { saveToken, getToken, deleteToken } from './db';

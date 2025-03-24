@@ -1,6 +1,6 @@
-import { prisma } from '../db';
-import { withTransaction, handleDbError, createWhereClause } from '../db/utils';
-import type { Token } from '../../types';
+import { prisma } from '$db/index';
+import { withTransaction, handleDbError, createWhereClause } from '$db/utils';
+import type { Token } from './types';
 
 export async function saveToken(userId: string, token: Token): Promise<void> {
   try {

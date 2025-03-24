@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { validateSession } from '$lib/server/auth/sessions';
 import type { Handle } from '@sveltejs/kit';
-import type { User, Token } from '$lib/types';
+// import type { User, Token } from '$lib/types';
 
 export const handle: Handle = async ({ event, resolve }) => {
   // Make cookies available in locals for auth functions

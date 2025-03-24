@@ -14,7 +14,15 @@ const config = {
 		adapter: adapter(),
 		alias: {
 			'$lib': './src/lib',
-			'$lib/*': './src/lib/*'
+			'$lib/*': './src/lib/*',
+			'$server': './src/lib/server',
+			'$server/*': './src/lib/server/*',
+			'$youtube': './src/lib/server/youtube',
+			'$youtube/*': './src/lib/server/youtube/*',
+			'$auth': './src/lib/server/auth',
+			'$auth/*': './src/lib/server/auth/*',
+			'$db': './src/lib/server/db',
+			'$db/*': './src/lib/server/db/*'
 		},
 		env: {
 			dir: './',

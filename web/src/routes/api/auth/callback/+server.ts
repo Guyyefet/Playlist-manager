@@ -1,9 +1,9 @@
 import { json, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
-import { exchangeCodeForToken, createOAuthClient } from '$lib/server/auth/oauth';
-import { createSession } from '$lib/server/auth/sessions';
-import { createUser, updateUserToken, getUser } from '$lib/server/auth/db';
-import type { Token, User } from '$lib/types';
+import { exchangeCodeForToken, createOAuthClient } from '$auth/oauth';
+import { createSession } from '$auth/sessions';
+import { createUser, updateUserToken, getUser } from '$auth/db';
+import type { Token, User } from '$auth/types';
 
 // Helper function to find or create user from token
 async function findOrCreateUser(token: Token): Promise<User> {

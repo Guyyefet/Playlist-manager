@@ -1,5 +1,5 @@
-import { getVideosByStatus, updateVideoStatus } from '../data/playlists';
-import { getYouTubeService } from '../api/client';
+import { getVideosByStatus, updateVideoStatus } from '$youtube/data/playlists';
+import { getYouTubeService } from '$youtube/api/client';
 
 const PROCESSING_INTERVAL = 1000 * 60 * 5; // 5 minutes
 

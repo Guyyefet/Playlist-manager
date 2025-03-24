@@ -1,5 +1,5 @@
 import { google, youtube_v3 } from 'googleapis';
-import { getToken } from '../../auth';
+import { getToken } from '$auth/db';
 import type { YouTubePlaylistResponse, YouTubePlaylistItemResponse, APIResponse } from '../types';
 
 export async function getYouTubeService(email: string) {
