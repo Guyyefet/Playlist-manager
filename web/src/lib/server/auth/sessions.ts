@@ -1,4 +1,4 @@
-import { prisma } from '$db/index';
+import { prismaClient } from '$lib/server/db/index';
 import { v4 as uuidv4 } from 'uuid';
 import type { Cookies } from '@sveltejs/kit';
 import type { User } from '$lib/types';
@@ -13,7 +13,7 @@ export async function createSession(cookies: Cookies, user: User, oauthToken?: s
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1000);
 
   // Create database session
-  await prisma.session.create({
+  await prismaClient.session.create({
     data: {
       token: sessionToken,
       userId: user.id,
@@ -36,7 +36,7 @@ export async function validateSession(cookies: Cookies): Promise<User | null> {
   if (!sessionToken) return null;
 
   // Get session from database
-  const session = await prisma.session.findUnique({
+  const session = await prismaClient.session.findUnique({
     where: { token: sessionToken },
     include: { user: true }
   });
@@ -54,7 +54,7 @@ export async function deleteSession(cookies: Cookies) {
   if (!sessionToken) return;
 
   // Delete from database
-  await prisma.session.deleteMany({
+  await prismaClient.session.deleteMany({
     where: { token: sessionToken }
   });
 
