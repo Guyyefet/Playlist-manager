@@ -1,6 +1,6 @@
 import type { Prisma } from '$db/index';
-import type { YouTubePlaylistResponse, YouTubePlaylistItemResponse } from '../types';
-import { isMusicPlaylist, isVideoAvailable } from '../utils';
+import type { YouTubePlaylistResponse, YouTubePlaylistItemResponse } from '$youtube/types';
+import { isMusicPlaylist, isVideoAvailable } from '$youtube/utils';
 
 export async function createPlaylist(
   tx: Prisma.TransactionClient,
@@ -72,5 +72,41 @@ export async function updateVideo(
       availability: isVideoAvailable(item.status.privacyStatus),
       updatedAt: new Date()
     }
+  });
+}
+
+export async function getPlaylist(
+  tx: Prisma.TransactionClient,
+  youtubeId: string
+) {
+  return tx.playlist.findUnique({
+    where: { youtubeId }
+  });
+}
+
+export async function deletePlaylist(
+  tx: Prisma.TransactionClient,
+  youtubeId: string
+) {
+  return tx.playlist.delete({
+    where: { youtubeId }
+  });
+}
+
+export async function getVideo(
+  tx: Prisma.TransactionClient,
+  videoId: string
+) {
+  return tx.video.findUnique({
+    where: { videoId }
+  });
+}
+
+export async function deleteVideo(
+  tx: Prisma.TransactionClient,
+  videoId: string
+) {
+  return tx.video.delete({
+    where: { videoId }
   });
 }

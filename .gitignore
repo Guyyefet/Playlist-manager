@@ -22,6 +22,7 @@ playlist-manager
 
 # Ignore scripts
 scripts
+set_env.sh
 
 # Build artifacts
 playlist_manager

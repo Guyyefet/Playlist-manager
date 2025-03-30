@@ -1,6 +1,7 @@
 import { google, youtube_v3 } from 'googleapis';
 import { getToken } from '$auth/db';
-import type { YouTubePlaylistResponse, YouTubePlaylistItemResponse, APIResponse } from '../types';
+import type { YouTubePlaylistResponse, YouTubePlaylistItemResponse, APIResponse } from '$youtube/types';
+import { mapPlaylistResponse, mapPlaylistItemResponse } from '$youtube/utils';
 
 export async function getYouTubeService(email: string) {
   const token = await getToken(email);
@@ -37,65 +38,8 @@ export async function getPlaylists(
         break;
       }
 
-      // Map YouTube API response to our type
-      const playlists: YouTubePlaylistResponse[] = response.data.items.map((item: youtube_v3.Schema$Playlist) => ({
-        id: item.id!,
-        snippet: {
-          title: item.snippet?.title || '',
-          description: item.snippet?.description || '',
-          thumbnails: {
-            default: {
-              url: item.snippet?.thumbnails?.default?.url || ''
-            }
-          },
-          channelId: item.snippet?.channelId || '',
-          channelTitle: item.snippet?.channelTitle || ''
-        },
-        contentDetails: {
-          itemCount: item.contentDetails?.itemCount || 0
-        },
-        status: {
-          privacyStatus: (item.status?.privacyStatus as 'public' | 'unlisted' | 'private') || 'private'
-        }
-      }));
-
-      // Fetch items for each playlist
-      for (const playlist of playlists) {
-        const itemsResponse = await youtube.playlistItems.list({
-          part: ['snippet', 'contentDetails', 'status'],
-          playlistId: playlist.id,
-          maxResults: 50
-        });
-
-        if (itemsResponse.data.items) {
-          // Map YouTube API response to our type
-          playlist.items = itemsResponse.data.items.map((item: youtube_v3.Schema$PlaylistItem) => ({
-            id: item.id!,
-            snippet: {
-              playlistId: item.snippet?.playlistId || '',
-              resourceId: {
-                videoId: item.snippet?.resourceId?.videoId || ''
-              },
-              position: item.snippet?.position || 0,
-              title: item.snippet?.title || '',
-              description: item.snippet?.description || '',
-              thumbnails: {
-                default: {
-                  url: item.snippet?.thumbnails?.default?.url || ''
-                }
-              },
-              channelId: item.snippet?.channelId || '',
-              channelTitle: item.snippet?.channelTitle || ''
-            },
-            contentDetails: {
-              duration: item.contentDetails?.videoPublishedAt || ''
-            },
-            status: {
-              privacyStatus: (item.status?.privacyStatus as 'public' | 'unlisted' | 'private') || 'private'
-            }
-          }));
-        }
-      }
+      // Map YouTube API response to our type using utility function
+      const playlists: YouTubePlaylistResponse[] = response.data.items.map(mapPlaylistResponse);
 
       allPlaylists = allPlaylists.concat(playlists);
       pageToken = response.data.nextPageToken;
@@ -114,6 +58,50 @@ export async function getPlaylists(
     return {
       data: [],
       error: 'Failed to fetch YouTube playlists',
+      pageInfo: {
+        totalResults: 0,
+        resultsPerPage: 0
+      }
+    };
+  }
+}
+
+export async function getPlaylistItems(
+  youtube: youtube_v3.Youtube,
+  playlistId: string
+): Promise<APIResponse<YouTubePlaylistItemResponse[]>> {
+  try {
+    const itemsResponse = await youtube.playlistItems.list({
+      part: ['snippet', 'contentDetails', 'status'],
+      playlistId,
+      maxResults: 50
+    });
+
+    if (!itemsResponse.data.items) {
+      return {
+        data: [],
+        pageInfo: {
+          totalResults: 0,
+          resultsPerPage: 0
+        }
+      };
+    }
+
+    // Map YouTube API response to our type using utility function
+    const items: YouTubePlaylistItemResponse[] = itemsResponse.data.items.map(mapPlaylistItemResponse);
+
+    return {
+      data: items,
+      pageInfo: {
+        totalResults: items.length,
+        resultsPerPage: 50
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching YouTube playlist items:', error);
+    return {
+      data: [],
+      error: 'Failed to fetch YouTube playlist items',
       pageInfo: {
         totalResults: 0,
         resultsPerPage: 0

@@ -2,14 +2,10 @@
 export { getYouTubeService } from './api/client';
 
 // Re-export utility functions
-export { isMusicPlaylist, isVideoAvailable } from './utils';
+export * from './utils';
 
 // Re-export playlist functions
-export { 
-  getPlaylistById, 
-  addVideoToPlaylist, 
-  updateVideoStatus 
-} from './data/playlists';
+export * from './data/playlists.crud';
 
 // Export types
 export * from './types';
