@@ -55,3 +55,6 @@ playlists.db
 
 # Node modules
 node_modules/
+
+# Tests
+web/tests/*

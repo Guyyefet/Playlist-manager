@@ -6,31 +6,32 @@
   
   let playlists: Playlist[] = [];
   let isLoading = false;
-  let activePlaylistView: 'all' | 'music' = 'music';
 
-  onMount(async () => {
+  onMount(() => {
     if (!data.user) {
       window.location.href = '/login';
-      return;
     }
-    
-    // Load music playlists by default
-    await loadPlaylists('music');
   });
 
-  async function loadPlaylists(view: 'all' | 'music') {
+  async function loadPlaylists() {
     isLoading = true;
     try {
-      const endpoint = view === 'music' 
-        ? '/api/playlists/music' 
-        : '/api/playlists';
-      const response = await fetch(endpoint);
-      if (!response.ok) throw new Error('Failed to fetch playlists');
-      playlists = await response.json() as Playlist[];
-      activePlaylistView = view;
+      console.log('Starting playlist fetch...');
+      const response = await fetch('/api/playlists');
+      console.log('Received response:', response);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Failed to fetch playlists: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Playlist data:', data);
+      playlists = data as Playlist[];
     } catch (error) {
       console.error('Failed to load playlists:', error);
-      alert('Failed to load playlists. Please try again.');
+      alert('Failed to load playlists. Please check console for details.');
     } finally {
       isLoading = false;
     }
@@ -43,16 +44,9 @@
   <div class="controls">
     <div class="playlist-view-buttons">
       <button 
-        class:active={activePlaylistView === 'music'}
-        on:click={() => loadPlaylists('music')} 
+        on:click={loadPlaylists} 
         disabled={isLoading}>
-        Music Playlists
-      </button>
-      <button 
-        class:active={activePlaylistView === 'all'}
-        on:click={() => loadPlaylists('all')} 
-        disabled={isLoading}>
-        All Playlists
+        Load Playlists
       </button>
     </div>
   </div>

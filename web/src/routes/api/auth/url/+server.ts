@@ -1,6 +1,5 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
-
 import { readFileSync } from 'fs';
 import { join } from 'path';
 

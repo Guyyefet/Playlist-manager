@@ -3,8 +3,8 @@ import { getToken } from '$auth/db';
 import type { YouTubePlaylistResponse, YouTubePlaylistItemResponse, APIResponse } from '$youtube/types';
 import { mapPlaylistResponse, mapPlaylistItemResponse } from '$youtube/utils';
 
-export async function getYouTubeService(email: string) {
-  const token = await getToken(email);
+export async function getYouTubeService(userId: string) {
+  const token = await getToken(userId);
   if (!token) {
     throw new Error('No valid YouTube token');
   }

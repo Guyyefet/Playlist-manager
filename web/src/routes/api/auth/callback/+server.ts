@@ -62,6 +62,11 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
         // Find or create user
         const user = await findOrCreateUser(token);
         
+        // Ensure we use UUID for token operations
+        if (!user.id) {
+            throw new Error('User missing ID after creation');
+        }
+        
         if (!user) {
             console.error('User creation/update failed', { token });
             throw new Error('Database error: Failed to create or update user');
@@ -74,8 +79,11 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
         
         console.log('User created/updated successfully:', user.id);
         
-        // Create session
-        await createSession(cookies, user, JSON.stringify(token));
+        // Create session using UUID
+        await createSession(cookies, user, JSON.stringify({
+            ...token,
+            userId: user.id // Store UUID with token
+        }));
         
         console.log('Session created, redirecting to home');
         throw redirect(303, '/home');
