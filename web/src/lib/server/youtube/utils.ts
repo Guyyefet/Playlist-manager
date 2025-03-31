@@ -1,5 +1,5 @@
 import { youtube_v3 } from 'googleapis';
-import type { YouTubePlaylistResponse, YouTubePlaylistItemResponse } from './types';
+import type { YouTubePlaylistResponse, YouTubePlaylistItemResponse, BatchOptions } from './types';
 
 export function isMusicPlaylist(playlistName: string): boolean {
   return playlistName.toLowerCase().includes('music:');

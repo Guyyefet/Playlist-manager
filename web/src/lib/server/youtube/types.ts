@@ -62,3 +62,17 @@ export interface APIResponse<T> {
     resultsPerPage: number;
   };
 }
+
+export interface PaginatedResult<T> extends APIResponse<T> {
+  progress?: {
+    current: number;
+    total: number;
+    status: SyncStatus;
+  };
+}
+
+export interface BatchOptions {
+  batchSize?: number;
+  maxResults?: number;
+  onProgress?: (progress: { current: number, total: number }) => void;
+}

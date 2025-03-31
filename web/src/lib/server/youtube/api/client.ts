@@ -1,7 +1,9 @@
 import { google, youtube_v3 } from 'googleapis';
+import type { GaxiosResponse } from 'googleapis-common';
 import { getToken } from '$auth/db';
-import type { YouTubePlaylistResponse, YouTubePlaylistItemResponse, APIResponse } from '$youtube/types';
+import type { YouTubePlaylistResponse, YouTubePlaylistItemResponse, APIResponse, BatchOptions } from '$youtube/types';
 import { mapPlaylistResponse, mapPlaylistItemResponse } from '$youtube/utils';
+import { processInBatches, paginateYouTubePlaylists } from '$youtube/pagination';
 
 export async function getYouTubeService(userId: string) {
   const token = await getToken(userId);
@@ -20,38 +22,18 @@ export async function getYouTubeService(userId: string) {
 }
 
 export async function getPlaylists(
-  youtube: youtube_v3.Youtube
+  youtube: youtube_v3.Youtube,
+  userId: string,
+  limit: number = 50,
+  pageToken?: string
 ): Promise<APIResponse<YouTubePlaylistResponse[]>> {
   try {
-    let allPlaylists: YouTubePlaylistResponse[] = [];
-    let pageToken: string | undefined = undefined;
-
-    do {
-      const response: any = await youtube.playlists.list({
-        part: ['snippet', 'contentDetails', 'status'],
-        mine: true,
-        maxResults: 50,
-        pageToken
-      });
-
-      if (!response.data.items) {
-        break;
-      }
-
-      // Map YouTube API response to our type using utility function
-      const playlists: YouTubePlaylistResponse[] = response.data.items.map(mapPlaylistResponse);
-
-      allPlaylists = allPlaylists.concat(playlists);
-      pageToken = response.data.nextPageToken;
-
-    } while (pageToken);
-
+    const result = await paginateYouTubePlaylists(youtube, userId, limit, pageToken);
+    
     return {
-      data: allPlaylists,
-      pageInfo: {
-        totalResults: allPlaylists.length,
-        resultsPerPage: 50
-      }
+      data: result.items.map(mapPlaylistResponse),
+      pageInfo: result.pageInfo,
+      nextPageToken: result.nextPageToken
     };
   } catch (error) {
     console.error('Error fetching YouTube playlists:', error);
@@ -68,33 +50,28 @@ export async function getPlaylists(
 
 export async function getPlaylistItems(
   youtube: youtube_v3.Youtube,
-  playlistId: string
+  playlistId: string,
+  options?: BatchOptions
 ): Promise<APIResponse<YouTubePlaylistItemResponse[]>> {
   try {
-    const itemsResponse = await youtube.playlistItems.list({
-      part: ['snippet', 'contentDetails', 'status'],
-      playlistId,
-      maxResults: 50
-    });
-
-    if (!itemsResponse.data.items) {
-      return {
-        data: [],
-        pageInfo: {
-          totalResults: 0,
-          resultsPerPage: 0
-        }
-      };
-    }
-
-    // Map YouTube API response to our type using utility function
-    const items: YouTubePlaylistItemResponse[] = itemsResponse.data.items.map(mapPlaylistItemResponse);
+    const items = await processInBatches<string, YouTubePlaylistItemResponse>(
+      [playlistId], // Start with just the playlist ID
+      async ([playlistId]: string[]) => {
+        const response = await youtube.playlistItems.list({
+          part: ['snippet', 'contentDetails', 'status'],
+          playlistId,
+          maxResults: options?.batchSize || 50
+        });
+        return response.data.items?.map(mapPlaylistItemResponse) || [];
+      },
+      options
+    );
 
     return {
       data: items,
       pageInfo: {
         totalResults: items.length,
-        resultsPerPage: 50
+        resultsPerPage: options?.batchSize || 50
       }
     };
   } catch (error) {
