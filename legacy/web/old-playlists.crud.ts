@@ -1,6 +1,6 @@
 import type { Prisma } from '$db/index';
-import type { YouTubePlaylistResponse, YouTubePlaylistItemResponse } from '$youtube/types';
-import { isMusicPlaylist, isVideoAvailable } from '$youtube/utils';
+import type { YouTubePlaylistResponse, YouTubePlaylistItemResponse } from '$lib/server/youtube/types/types';
+import { isMusicPlaylist, isVideoAvailable } from '$lib/server/youtube/utils/utils';
 
 export async function createPlaylist(
   tx: Prisma.TransactionClient,

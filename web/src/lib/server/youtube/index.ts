@@ -1,11 +1,12 @@
-// Re-export the YouTube service function
-export { getYouTubeService } from './api/client';
+import { YouTubeApiClient } from './api/client';
+import { PlaylistsRepository } from './data/playlists.repository';
+import { PlaylistService } from './service/playlists.service';
+import { prismaClient } from '$lib/server/db';
 
-// Re-export utility functions
-export * from './utils';
+// Initialize dependencies with default configurations
+export const youtubeClient = new YouTubeApiClient(fetch, '');
+export const playlistsRepo = new PlaylistsRepository(prismaClient);
+export const youtubeService = new PlaylistService(youtubeClient, playlistsRepo);
 
-// Re-export playlist functions
-export * from './data/playlists.crud';
-
-// Export types
-export * from './types';
+// Re-export types for convenience
+export type { YouTubeApiClient, PlaylistsRepository, PlaylistService };
