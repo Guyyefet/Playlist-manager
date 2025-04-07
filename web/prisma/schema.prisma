@@ -31,7 +31,7 @@ model Session {
 
 model Playlist {
   id             String   @id @default(uuid())
-  youtubeId      String?  @unique
+  youtubeId      String   @unique
   name           String   @unique
   description    String?
   userId         String

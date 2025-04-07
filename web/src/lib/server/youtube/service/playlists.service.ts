@@ -19,11 +19,11 @@ export class PlaylistService {
    * First tries to get from DB, falls back to YouTube API if none found
    */
   async getPlaylists(
-    userId: string, 
+    userId: string,
     options: PlaylistServiceOptions
   ): Promise<PaginatedResponse<PlaylistWithVideos>> {
     try {
-      // Get playlists from DB
+      this.client.setCurrentUser(userId);
       const dbPlaylists = await this.repository.getUserPlaylistsWithVideos(userId, options.limit);
       
       // If we have playlists in the DB, return them

@@ -45,11 +45,16 @@ export class PlaylistsRepository extends BaseRepository<Playlist> {
    */
   async createPlaylist(data: Prisma.PlaylistCreateInput): Promise<Playlist> {
     try {
-      return await this.tx.playlist.create({
-        data
+      if (!data.youtubeId) {
+        throw new Error('youtubeId is required');
+      }
+      return await this.tx.playlist.upsert({
+        where: { youtubeId: data.youtubeId },
+        create: data,
+        update: data
       });
     } catch (error) {
-      throw handleError(error, 'Failed to create playlist');
+      throw handleError(error, 'Failed to create/update playlist');
     }
   }
 
@@ -58,11 +63,13 @@ export class PlaylistsRepository extends BaseRepository<Playlist> {
    */
   async createVideo(data: Prisma.VideoUncheckedCreateInput): Promise<Video> {
     try {
-      return await this.tx.video.create({
-        data
+      return await this.tx.video.upsert({
+        where: { videoId: data.videoId },
+        create: data,
+        update: data
       });
     } catch (error) {
-      throw handleError(error, 'Failed to create video');
+      throw handleError(error, 'Failed to create/update video');
     }
   }
 }

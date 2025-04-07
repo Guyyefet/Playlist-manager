@@ -1,37 +1,23 @@
 import type { YouTubeApiResponse, YouTubePlaylistResponse, YouTubePlaylistItemResponse } from '$youtube/api/api.types';
-import * as auth from '$lib/server/auth';
+import { YouTubeAuthClient } from './auth-client';
 
 
 /**
- * Pure YouTube API client - only handles HTTP communication
+ * YouTube API client with built-in token management
  * Returns raw API responses without transformation
  */
 export class YouTubeApiClient {
   private baseUrl = 'https://www.googleapis.com/youtube/v3';
   private fetch: typeof fetch;
+  private authClient: YouTubeAuthClient;
 
-  constructor(
-    fetchInstance: typeof fetch,
-    private userId: string
-  ) {
+  constructor(fetchInstance: typeof fetch) {
     this.fetch = fetchInstance;
+    this.authClient = new YouTubeAuthClient('');
   }
 
-  private async getToken(): Promise<string> {
-    // Get token from DB
-    let token = await auth.getToken(this.userId);
-    if (!token) {
-      throw new Error(`No token found for user ${this.userId}. Please reauthenticate.`);
-    }
-
-    // Refresh if needed (5 minute buffer)
-    if (token.expiry_date < Date.now() + 300_000) {
-      const client = await auth.createOAuthClient();
-      token = await auth.refreshToken(client, token);
-      await auth.saveToken(this.userId, token);
-    }
-
-    return token.access_token;
+  setCurrentUser(userId: string) {
+    this.authClient.setUserId(userId);
   }
 
   /**
@@ -41,6 +27,7 @@ export class YouTubeApiClient {
     limit: number = 50,
     pageToken?: string
   ): Promise<YouTubeApiResponse<YouTubePlaylistResponse>> {
+    const accessToken = await this.authClient.getAccessToken();
     const url = new URL(`${this.baseUrl}/playlists`);
     url.searchParams.append('part', 'snippet,contentDetails');
     url.searchParams.append('mine', 'true');
@@ -50,8 +37,7 @@ export class YouTubeApiClient {
     }
 
     const headers = new Headers();
-    const token = await this.getToken();
-    headers.append('Authorization', `Bearer ${token}`);
+    headers.append('Authorization', `Bearer ${accessToken}`);
 
     const response = await this.fetch(url.toString(), {
       headers
@@ -75,6 +61,7 @@ export class YouTubeApiClient {
     limit: number = 50,
     pageToken?: string
   ): Promise<YouTubeApiResponse<YouTubePlaylistItemResponse>> {
+    const accessToken = await this.authClient.getAccessToken();
     const url = new URL(`${this.baseUrl}/playlistItems`);
     url.searchParams.append('part', 'snippet,contentDetails,status');
     url.searchParams.append('playlistId', playlistId);
@@ -84,8 +71,7 @@ export class YouTubeApiClient {
     }
 
     const headers = new Headers();
-    const token = await this.getToken();
-    headers.append('Authorization', `Bearer ${token}`);
+    headers.append('Authorization', `Bearer ${accessToken}`);
 
     const response = await this.fetch(url.toString(), {
       headers
